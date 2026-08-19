@@ -48,7 +48,7 @@ function responseHeaders(request, env, extra = {}) {
   });
   if (origin && isAllowedOrigin(origin, env)) {
     headers.set("Access-Control-Allow-Origin", origin);
-    headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
     headers.set("Access-Control-Max-Age", "86400");
   }
@@ -107,10 +107,14 @@ async function hmac(secret, value) {
 async function deriveProjectCredentials(env, source, idempotencyKey) {
   const identity = `${source}:${idempotencyKey}`;
   const projectSignature = await hmac(env.PROJECT_SIGNING_SECRET, `project:${identity}`);
-  const tokenSignature = await hmac(env.PROJECT_SIGNING_SECRET, `edit-token:${identity}`);
   const projectId = `gift-${bytesToHex(projectSignature).slice(0, 16)}`;
+  const tokenSignature = await hmac(env.PROJECT_SIGNING_SECRET, `edit-token:${projectId}`);
   const editToken = bytesToBase64Url(tokenSignature);
   return { projectId, editToken, editTokenHash: await sha256(editToken) };
+}
+
+async function deriveEditToken(env, projectId) {
+  return bytesToBase64Url(await hmac(env.PROJECT_SIGNING_SECRET, `edit-token:${projectId}`));
 }
 
 async function readJson(request) {
@@ -149,6 +153,11 @@ async function authorizeProject(request, env, record, allowAdmin = false) {
   return "studio";
 }
 
+function requireAdmin(request, env) {
+  if (!env.ADMIN_SECRET) throw new HttpError(500, "ADMIN_SECRET belum dikonfigurasi.");
+  if (!constantTimeEqual(bearerToken(request), env.ADMIN_SECRET)) throw new HttpError(403, "Admin secret tidak valid.");
+}
+
 function absoluteUrl(base, path) {
   const normalizedBase = String(base || "").replace(/\/$/, "");
   return `${normalizedBase}${path}`;
@@ -161,14 +170,9 @@ function projectLinks(env, projectId, editToken) {
   };
 }
 
-async function handleCreateProject(request, env) {
-  const internalSecret = bearerToken(request);
-  if (!env.INTERNAL_GENERATOR_SECRET || !constantTimeEqual(internalSecret, env.INTERNAL_GENERATOR_SECRET)) {
-    throw new HttpError(403, "Internal generator secret tidak valid.");
-  }
-  const body = await readJson(request);
-  const source = String(body.source || "manual").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
-  const idempotencyKey = String(body.idempotencyKey || "").trim().slice(0, 200);
+async function createProject(env, sourceInput, idempotencyInput, initialProject) {
+  const source = String(sourceInput || "manual").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
+  const idempotencyKey = String(idempotencyInput || "").trim().slice(0, 200);
   if (!source || idempotencyKey.length < 3) throw new HttpError(400, "source dan idempotencyKey wajib diisi.");
 
   const credentials = await deriveProjectCredentials(env, source, idempotencyKey);
@@ -179,7 +183,7 @@ async function handleCreateProject(request, env) {
 
   if (!record) {
     const now = new Date().toISOString();
-    const initial = body.project && typeof body.project === "object" ? body.project : emptyProject(credentials.projectId);
+    const initial = initialProject && typeof initialProject === "object" ? initialProject : emptyProject(credentials.projectId);
     const project = normalizeProject({ ...initial, status: "draft" }, credentials.projectId);
     record = {
       ...project,
@@ -187,7 +191,7 @@ async function handleCreateProject(request, env) {
       createdAt: now,
       updatedAt: now,
       publishedAt: null,
-      auth: { editTokenHash: credentials.editTokenHash },
+      auth: { editTokenHash: credentials.editTokenHash, tokenVersion: 2 },
       source,
       idempotencyKeyHash: await sha256(idempotencyKey)
     };
@@ -196,11 +200,27 @@ async function handleCreateProject(request, env) {
   }
 
   await env.GIFT_KV.put(idempotencyStorageKey, credentials.projectId);
-  return json(request, env, {
+  return {
     created,
     projectId: credentials.projectId,
     ...projectLinks(env, credentials.projectId, credentials.editToken)
-  }, created ? 201 : 200, { "Cache-Control": "no-store" });
+  };
+}
+
+async function handleInternalCreateProject(request, env) {
+  if (!env.INTERNAL_GENERATOR_SECRET || !constantTimeEqual(bearerToken(request), env.INTERNAL_GENERATOR_SECRET)) {
+    throw new HttpError(403, "Internal generator secret tidak valid.");
+  }
+  const body = await readJson(request);
+  const result = await createProject(env, body.source, body.idempotencyKey, body.project);
+  return json(request, env, result, result.created ? 201 : 200, { "Cache-Control": "no-store" });
+}
+
+async function handleAdminCreateProject(request, env) {
+  requireAdmin(request, env);
+  const body = await readJson(request);
+  const result = await createProject(env, "manual", body.idempotencyKey, body.project);
+  return json(request, env, result, result.created ? 201 : 200, { "Cache-Control": "no-store" });
 }
 
 async function handleGetGift(request, env, projectId) {
@@ -211,6 +231,7 @@ async function handleGetGift(request, env, projectId) {
 
 async function handleGetStudio(request, env, projectId) {
   const record = await requireProject(env, projectId);
+  if (record.status === "archived") throw new HttpError(410, "Project sedang diarsipkan.");
   await authorizeProject(request, env, record);
   return json(request, env, {
     project: publicProject(record),
@@ -220,6 +241,7 @@ async function handleGetStudio(request, env, projectId) {
 
 async function handleSaveStudio(request, env, projectId) {
   const existing = await requireProject(env, projectId);
+  if (existing.status === "archived") throw new HttpError(410, "Project sedang diarsipkan.");
   await authorizeProject(request, env, existing);
   const body = await readJson(request);
   const requestedStatus = body.status === "published" ? "published" : "draft";
@@ -322,12 +344,131 @@ async function handleSubmitWish(request, env) {
 async function handleGetWishes(request, env, projectId) {
   const record = await requireProject(env, projectId);
   await authorizeProject(request, env, record, true);
-  const requestedLimit = Number(new URL(request.url).searchParams.get("limit"));
+  const limitParam = new URL(request.url).searchParams.get("limit");
+  const requestedLimit = limitParam === null ? NaN : Number(limitParam);
   const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(100, Math.floor(requestedLimit))) : 50;
   const listed = await env.GIFT_KV.list({ prefix: `${WISH_PREFIX}${projectId}:`, limit });
   const wishes = (await Promise.all(listed.keys.map(key => env.GIFT_KV.get(key.name, "json")))).filter(Boolean);
   wishes.sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
   return json(request, env, { wishes, cursor: listed.list_complete ? null : listed.cursor }, 200, { "Cache-Control": "no-store" });
+}
+
+async function adminProjectSummary(env, record) {
+  const editToken = await deriveEditToken(env, record.projectId);
+  const tokenMatches = record.auth?.editTokenHash && constantTimeEqual(await sha256(editToken), record.auth.editTokenHash);
+  const links = projectLinks(env, record.projectId, editToken);
+  return {
+    projectId: record.projectId,
+    recipient: record.identity?.recipient || "Belum diisi",
+    sender: record.identity?.sender || "Belum diisi",
+    birthdayDate: record.identity?.birthdayDate || "",
+    status: record.status || "draft",
+    source: record.source || "manual",
+    galleryCount: Array.isArray(record.gallery) ? record.gallery.filter(item => item?.imageUrl).length : 0,
+    wishEnabled: record.settings?.wishEnabled !== false,
+    createdAt: record.createdAt || "",
+    updatedAt: record.updatedAt || "",
+    publishedAt: record.publishedAt || null,
+    archivedAt: record.archivedAt || null,
+    giftUrl: links.giftUrl,
+    studioUrl: tokenMatches ? links.studioUrl : null
+  };
+}
+
+async function handleAdminListProjects(request, env) {
+  requireAdmin(request, env);
+  const url = new URL(request.url);
+  const search = String(url.searchParams.get("search") || "").trim().toLowerCase();
+  const statusFilter = String(url.searchParams.get("status") || "all").trim().toLowerCase();
+  const limitParam = url.searchParams.get("limit");
+  const requestedLimit = limitParam === null ? NaN : Number(limitParam);
+  const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(100, Math.floor(requestedLimit))) : 50;
+  const listed = await env.GIFT_KV.list({ prefix: PROJECT_PREFIX, limit: 1000 });
+  const records = (await Promise.all(listed.keys.map(key => env.GIFT_KV.get(key.name, "json")))).filter(Boolean);
+  const stats = records.reduce((result, record) => {
+    const status = ["draft", "published", "archived"].includes(record.status) ? record.status : "draft";
+    result.total += 1;
+    result[status] += 1;
+    return result;
+  }, { total: 0, draft: 0, published: 0, archived: 0 });
+  const filtered = records.filter(record => {
+    if (statusFilter !== "all" && record.status !== statusFilter) return false;
+    if (!search) return true;
+    const haystack = [record.projectId, record.identity?.recipient, record.identity?.sender, record.source].join(" ").toLowerCase();
+    return haystack.includes(search);
+  });
+  filtered.sort((left, right) => String(right.updatedAt || right.createdAt).localeCompare(String(left.updatedAt || left.createdAt)));
+  const projects = await Promise.all(filtered.slice(0, limit).map(record => adminProjectSummary(env, record)));
+  return json(request, env, { projects, stats, totalMatched: filtered.length }, 200, { "Cache-Control": "no-store" });
+}
+
+async function handleAdminProjectStatus(request, env, projectId) {
+  requireAdmin(request, env);
+  const body = await readJson(request);
+  const action = String(body.action || "").toLowerCase();
+  const existing = await requireProject(env, projectId);
+  const now = new Date().toISOString();
+  let record;
+  if (action === "archive") {
+    if (existing.status === "archived") return json(request, env, { project: await adminProjectSummary(env, existing) }, 200, { "Cache-Control": "no-store" });
+    record = { ...existing, status: "archived", archivedFrom: existing.status, archivedAt: now, updatedAt: now };
+  } else if (action === "restore") {
+    if (existing.status !== "archived") throw new HttpError(409, "Project tidak sedang diarsipkan.");
+    const restoredStatus = existing.archivedFrom === "published" ? "published" : "draft";
+    record = { ...existing, status: restoredStatus, archivedAt: null, archivedFrom: null, updatedAt: now };
+  } else {
+    throw new HttpError(400, "Action harus archive atau restore.");
+  }
+  await env.GIFT_KV.put(`${PROJECT_PREFIX}${projectId}`, JSON.stringify(record));
+  return json(request, env, { project: await adminProjectSummary(env, record) }, 200, { "Cache-Control": "no-store" });
+}
+
+async function collectKvKeys(env, prefix) {
+  const names = [];
+  let cursor;
+  do {
+    const page = await env.GIFT_KV.list({ prefix, limit: 1000, ...(cursor ? { cursor } : {}) });
+    names.push(...page.keys.map(key => key.name));
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  return names;
+}
+
+async function deleteKvKeys(env, names) {
+  for (let index = 0; index < names.length; index += 100) {
+    await Promise.all(names.slice(index, index + 100).map(name => env.GIFT_KV.delete(name)));
+  }
+}
+
+async function collectR2Keys(env, prefix) {
+  const keys = [];
+  let cursor;
+  do {
+    const page = await env.MEDIA_BUCKET.list({ prefix, limit: 1000, ...(cursor ? { cursor } : {}) });
+    keys.push(...page.objects.map(object => object.key));
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  return keys;
+}
+
+async function handleAdminDeleteProject(request, env, projectId) {
+  requireAdmin(request, env);
+  const existing = await requireProject(env, projectId);
+  const wishKeys = await collectKvKeys(env, `${WISH_PREFIX}${projectId}:`);
+  const rateKeys = await collectKvKeys(env, `rate:wish:${projectId}:`);
+  const mediaKeys = await collectR2Keys(env, `snoopy/${projectId}/`);
+  await deleteKvKeys(env, [...wishKeys, ...rateKeys]);
+  if (mediaKeys.length) await env.MEDIA_BUCKET.delete(mediaKeys);
+  if (existing.source && existing.idempotencyKeyHash) {
+    await env.GIFT_KV.delete(`idempotency:${existing.source}:${existing.idempotencyKeyHash}`);
+  }
+  await env.GIFT_KV.delete(`${PROJECT_PREFIX}${projectId}`);
+  return json(request, env, {
+    deleted: true,
+    projectId,
+    removedWishes: wishKeys.length,
+    removedMedia: mediaKeys.length
+  }, 200, { "Cache-Control": "no-store" });
 }
 
 async function route(request, env) {
@@ -349,7 +490,12 @@ async function route(request, env) {
   if (request.method === "POST" && path === "/api/wishes") return handleSubmitWish(request, env);
   match = path.match(/^\/api\/wishes\/([^/]+)$/);
   if (request.method === "GET" && match) return handleGetWishes(request, env, decodeURIComponent(match[1]).toLowerCase());
-  if (request.method === "POST" && path === "/api/internal/projects") return handleCreateProject(request, env);
+  if (request.method === "GET" && path === "/api/admin/projects") return handleAdminListProjects(request, env);
+  if (request.method === "POST" && path === "/api/admin/projects") return handleAdminCreateProject(request, env);
+  match = path.match(/^\/api\/admin\/projects\/([^/]+)$/);
+  if (request.method === "PATCH" && match) return handleAdminProjectStatus(request, env, decodeURIComponent(match[1]).toLowerCase());
+  if (request.method === "DELETE" && match) return handleAdminDeleteProject(request, env, decodeURIComponent(match[1]).toLowerCase());
+  if (request.method === "POST" && path === "/api/internal/projects") return handleInternalCreateProject(request, env);
   throw new HttpError(404, "Endpoint tidak ditemukan.");
 }
 

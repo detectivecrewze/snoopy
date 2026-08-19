@@ -211,6 +211,7 @@
                   <div class="copy-row"><input id="gift-url" readonly><button id="copy-gift-url" type="button">Copy</button></div>
                   <div class="qr-card"><div id="qr-code"></div><p>Scan untuk membuka kadonya</p></div>
                   <button class="comic-button comic-button--yellow" id="download-qr" type="button">Download QR PNG</button>
+                  <p class="download-status" id="download-status" role="status" aria-live="polite"></p>
                   <a class="text-link" id="open-public-gift" target="_blank" rel="noreferrer">Buka gift di tab baru</a>
                 </div>
               </aside>
@@ -250,7 +251,7 @@
     }
   </script>
   <script src="/shared/api.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kZ0LzPYO2gqXMdJ6MLxAk0UyRFt87PIY3dElG6VxgmMVQw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer"></script>
   <script src="/studio/app.js"></script>
 </body>
 </html>

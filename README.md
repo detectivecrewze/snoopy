@@ -12,19 +12,33 @@ Buka:
 
 - Gift demo: `http://localhost:3000/gift/cindy-demo?mock=1`
 - Studio demo: `http://localhost:3000/studio/cindy-demo?mock=1#token=demo-token`
-- Admin placeholder: `http://localhost:3000/admin`
+- Admin dashboard: `http://localhost:3000/admin`
 
 Magic token dipindahkan dari URL fragment ke `sessionStorage` saat studio dibuka. Mock draft dan wish disimpan di `localStorage`. Perilaku ini hanya aktif pada localhost dan tidak menjadi fallback production.
 
+## Vercel static deployment
+
+Vercel dikunci ke preset `Other`, menjalankan `npm run build`, dan hanya mempublikasikan folder `dist`. Build tersebut menggunakan allowlist frontend sehingga `server.js`, Worker, tests, fixture development, source Markdown, foto Cindy, dan MP3 lokal tidak masuk deployment.
+
+Jangan memilih preset Express atau mengarahkan Output Directory ke root. Konfigurasi `vercel.json` sudah menetapkan Output Directory ke `dist` dan akan mengoverride pengaturan deployment berikutnya.
+
 ## Production API
 
-1. Buat KV namespace dan R2 bucket mengikuti `worker/README.md`.
+1. Buat KV namespace dan siapkan nama bucket R2 For You Always yang sudah ada mengikuti `worker/README.md`.
 2. Isi bindings serta URL production pada `worker/wrangler.toml`.
 3. Simpan tiga secret Worker menggunakan `wrangler secret put`.
 4. Deploy Worker.
 5. Masukkan URL Worker ke `runtime-config.js` pada `apiBaseUrl`.
 
 Frontend kemudian mengakses Worker secara langsung. Pastikan domain Vercel sudah tercantum pada `ALLOWED_ORIGINS`.
+
+Media customer menggunakan bucket R2 For You Always yang sudah ada dan CDN `https://cdn.for-you-always.my.id`. Isi `bucket_name` dengan nama bucket Cloudflare aslinya; jangan membuat bucket baru hanya untuk Snoopy. File tetap terisolasi dalam prefix `snoopy/{projectId}/`.
+
+## Admin dashboard
+
+Halaman `/admin` memakai `ADMIN_SECRET` yang hanya disimpan sementara di `sessionStorage`. Dashboard menyediakan statistik, pencarian dan filter status, pembuatan project manual/gratis, magic link studio, link gift, archive/restore, serta penghapusan permanen dengan konfirmasi project ID.
+
+Penghapusan permanen turut membersihkan config project, wish inbox, idempotency mapping, rate counter, dan seluruh media project di R2.
 
 ## Dynamic project contract
 
@@ -51,5 +65,7 @@ Array langsung juga diterima. Studio turut mengenali alias `name`, `singer`, `sr
 ```text
 npm run check
 ```
+
+Perintah tersebut menjalankan pemeriksaan sintaks dan suite Node untuk kontrak frontend, autentikasi admin, lifecycle project, upload R2, publish, gift publik, wish inbox, archive/restore, penghapusan, CORS, serta idempotency.
 
 Telegram tidak digunakan lagi. Wish penerima disimpan di KV dan dibaca melalui Wish Inbox studio.

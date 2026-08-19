@@ -431,21 +431,38 @@
   }
 
   async function downloadQr() {
+    const status = $("#download-status");
+    status.textContent = "Menyiapkan QR...";
     const qrCanvas = $("#qr-code canvas");
     const qrImage = $("#qr-code img");
-    let dataUrl = qrCanvas?.toDataURL("image/png");
-    if (!dataUrl && qrImage) {
-      const canvas = document.createElement("canvas");
+    let canvas = qrCanvas;
+    if (!canvas && qrImage) {
+      canvas = document.createElement("canvas");
       canvas.width = qrImage.naturalWidth || 360;
       canvas.height = qrImage.naturalHeight || 360;
       canvas.getContext("2d").drawImage(qrImage, 0, 0, canvas.width, canvas.height);
-      dataUrl = canvas.toDataURL("image/png");
     }
-    if (!dataUrl) return;
+    if (!canvas) {
+      status.textContent = "QR belum siap. Coba lagi sebentar.";
+      return;
+    }
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    if (!blob) {
+      status.textContent = "QR belum dapat diunduh. Coba lagi.";
+      return;
+    }
+
+    const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.download = `qr-${projectId}.png`;
-    link.href = dataUrl;
+    link.href = downloadUrl;
+    link.rel = "noopener";
+    document.body.append(link);
     link.click();
+    link.remove();
+    status.textContent = `QR ${projectId} berhasil disiapkan.`;
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
   }
 
   function bindEvents() {

@@ -1,17 +1,17 @@
 name = "snoopy-gift-api"
 main = "src/index.js"
-compatibility_date = "2026-08-20"
+compatibility_date = "2024-01-01"
 
 [vars]
-ALLOWED_ORIGINS = "https://your-vercel-domain.vercel.app"
-PUBLIC_GIFT_BASE_URL = "https://your-vercel-domain.vercel.app"
-PUBLIC_STUDIO_BASE_URL = "https://your-vercel-domain.vercel.app"
-MEDIA_BASE_URL = "https://your-r2-cdn.example.com"
+ALLOWED_ORIGINS = "https://snoopy.for-you-always.my.id"
+PUBLIC_GIFT_BASE_URL = "https://snoopy.for-you-always.my.id"
+PUBLIC_STUDIO_BASE_URL = "https://snoopy.for-you-always.my.id"
+MEDIA_BASE_URL = "https://cdn.for-you-always.my.id"
 
 [[kv_namespaces]]
 binding = "GIFT_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "b2cf6b4dfda84217ac0365178621a4fe"
 
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
-bucket_name = "snoopy-gift-media"
+bucket_name = "arcade-edition-storage"

@@ -37,7 +37,8 @@ function serveStatic(response, pathname) {
   if (/^\/admin\/?$/i.test(pathname)) requested = "admin/index.html";
   const filePath = path.resolve(ROOT, requested);
   const privateFiles = new Set(["server.js", "package.json", "package-lock.json"]);
-  const blocked = requested.startsWith(".") || requested.startsWith("api/") || requested.startsWith("tests/") || privateFiles.has(requested);
+  const hasHiddenSegment = requested.split("/").some(segment => segment.startsWith("."));
+  const blocked = hasHiddenSegment || requested.startsWith("api/") || requested.startsWith("tests/") || requested.startsWith("worker/") || privateFiles.has(requested);
   if (blocked || !filePath.startsWith(`${ROOT}${path.sep}`)) return sendJson(response, 404, { error: "Not found." });
 
   fs.stat(filePath, (error, stats) => {

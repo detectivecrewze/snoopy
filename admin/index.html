@@ -2,14 +2,156 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#142a4a">
+  <meta name="gift-api-base" content="">
   <title>Snoopy Gift Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=DM+Sans:wght@500;600&family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box}body{display:grid;min-width:320px;min-height:100vh;margin:0;place-items:center;padding:24px;color:#171717;background:radial-gradient(circle at 18px 18px,rgba(248,212,76,.28) 0 3px,transparent 3.5px) 0 0/64px 64px,#fff8df;font-family:"DM Sans",sans-serif}.note{position:relative;width:min(100%,560px);padding:clamp(2rem,7vw,4rem);border:3px solid #171717;border-radius:8px 28px 12px 22px;background:#fffdf4;box-shadow:10px 12px 0 #171717;text-align:center}.note:before{content:"ADMIN";position:absolute;top:-18px;left:50%;padding:.55rem 1rem;border:2px solid #171717;border-radius:8px;color:#fff;background:#e94238;font:700 .7rem "Fredoka",sans-serif;letter-spacing:.12em;transform:translateX(-50%) rotate(-2deg)}h1{margin:.4rem 0;font:700 clamp(2.2rem,9vw,4rem)/1 "Fredoka",sans-serif}p{margin:.8rem auto 0;color:#6f695e;font:600 1.2rem/1.4 "Caveat",cursive}
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/styles.css">
 </head>
-<body><main class="note"><h1>Admin sedang disiapkan</h1><p>Routing-nya sudah siap. Dashboard dan generator internal akan dibangun pada Step 3 setelah Worker tersedia.</p></main></body>
+<body>
+  <div class="admin-grain" aria-hidden="true"></div>
+
+  <main class="login-screen" id="login-screen">
+    <section class="login-card">
+      <span class="tape" aria-hidden="true"></span>
+      <p class="eyebrow">OWNER ACCESS</p>
+      <h1>Snoopy Gift<br><em>Control Room</em></h1>
+      <p>Masukkan admin secret untuk membuka daftar project dan generator internal.</p>
+      <form id="login-form">
+        <label><span>Admin secret</span><input id="admin-secret" type="password" autocomplete="current-password" required placeholder="••••••••••••"></label>
+        <p class="form-error" id="login-error" role="alert"></p>
+        <button class="comic-button comic-button--red" type="submit">Buka dashboard</button>
+      </form>
+      <small>Secret hanya disimpan sementara di session browser ini.</small>
+    </section>
+  </main>
+
+  <div class="admin-app" id="admin-app" hidden>
+    <header class="admin-header">
+      <a class="brand" href="/admin"><span>FOR YOU</span><strong>Gift Admin</strong></a>
+      <nav>
+        <button class="header-button" id="refresh-projects" type="button">Refresh</button>
+        <button class="header-button header-button--logout" id="logout" type="button">Keluar</button>
+      </nav>
+    </header>
+
+    <main class="admin-main">
+      <section class="hero-row">
+        <div>
+          <p class="eyebrow">SNOOPY EDITION</p>
+          <h1>Semua kado,<br><em>satu meja kerja.</em></h1>
+          <p>Buat project gratis, salin magic link, pantau status, atau bersihkan project yang sudah tidak digunakan.</p>
+        </div>
+        <button class="comic-button comic-button--red create-hero" id="open-create-modal" type="button"><span>+</span>Buat kado baru</button>
+      </section>
+
+      <section class="stats-grid" aria-label="Ringkasan project">
+        <article><span>TOTAL PROJECT</span><strong id="stat-total">0</strong><i class="dot dot--ink"></i></article>
+        <article><span>DRAFT</span><strong id="stat-draft">0</strong><i class="dot dot--yellow"></i></article>
+        <article><span>PUBLISHED</span><strong id="stat-published">0</strong><i class="dot dot--green"></i></article>
+        <article><span>ARCHIVED</span><strong id="stat-archived">0</strong><i class="dot dot--blue"></i></article>
+      </section>
+
+      <section class="project-section">
+        <header class="section-heading">
+          <div><p class="eyebrow">PROJECT LIBRARY</p><h2>Daftar kado</h2></div>
+          <div class="filters">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="project-search" type="search" placeholder="Cari penerima, pengirim, atau ID..."></label>
+            <select id="status-filter" aria-label="Filter status">
+              <option value="all">Semua status</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </header>
+
+        <div class="loading-projects" id="loading-projects" hidden><i></i><i></i><i></i><span>Memuat project...</span></div>
+        <div class="project-grid" id="project-grid"></div>
+        <div class="empty-projects" id="empty-projects" hidden><strong>Belum ada project di sini</strong><p>Buat kado pertama atau ubah filter pencarianmu.</p></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="admin-modal" id="create-modal">
+    <form method="dialog" class="modal-card" id="create-form">
+      <button class="modal-close" value="cancel" aria-label="Tutup" type="submit">×</button>
+      <p class="eyebrow">FREE PROJECT</p>
+      <h2>Buat magic link baru</h2>
+      <p>Semua kolom boleh dikosongkan. Customer tetap dapat melengkapinya di studio.</p>
+      <div class="form-grid">
+        <label><span>Nama penerima</span><input id="create-recipient" maxlength="80" placeholder="Opsional"></label>
+        <label><span>Nama pengirim</span><input id="create-sender" maxlength="80" placeholder="Opsional"></label>
+        <label class="wide"><span>Tanggal ulang tahun</span><input id="create-birthday" type="date"></label>
+      </div>
+      <p class="form-error" id="create-error" role="alert"></p>
+      <button class="comic-button comic-button--red" id="create-project" type="button">Generate magic link</button>
+    </form>
+  </dialog>
+
+  <dialog class="admin-modal" id="result-modal">
+    <section class="modal-card result-card">
+      <button class="modal-close" id="close-result" aria-label="Tutup" type="button">×</button>
+      <p class="eyebrow">PROJECT READY</p>
+      <h2>Magic link sudah jadi</h2>
+      <p>Kirim link studio ini kepada customer. Token tidak akan muncul pada daftar project publik.</p>
+      <label class="result-link"><span>Studio magic link</span><textarea id="created-studio-url" rows="4" readonly></textarea></label>
+      <div class="result-actions">
+        <button class="comic-button comic-button--yellow" id="copy-created-link" type="button">Copy link</button>
+        <a class="comic-button comic-button--blue" id="open-created-studio" target="_blank" rel="noreferrer">Buka studio</a>
+      </div>
+    </section>
+  </dialog>
+
+  <dialog class="admin-modal" id="delete-modal">
+    <form method="dialog" class="modal-card danger-card" id="delete-form">
+      <button class="modal-close" value="cancel" aria-label="Tutup" type="submit">×</button>
+      <p class="eyebrow">PERMANENT DELETE</p>
+      <h2>Hapus project?</h2>
+      <p>Config, seluruh wish, dan media R2 project akan dihapus permanen. Ketik project ID untuk konfirmasi.</p>
+      <code id="delete-project-label"></code>
+      <label><span>Project ID</span><input id="delete-confirmation" autocomplete="off"></label>
+      <p class="form-error" id="delete-error" role="alert"></p>
+      <button class="comic-button comic-button--danger" id="confirm-delete" type="button" disabled>Hapus permanen</button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <template id="project-card-template">
+    <article class="project-card">
+      <div class="card-tape" aria-hidden="true"></div>
+      <header>
+        <span class="status-pill"></span>
+        <button class="more-button" type="button" aria-label="Aksi project">•••</button>
+      </header>
+      <div class="project-copy">
+        <small class="project-id"></small>
+        <h3 class="project-recipient"></h3>
+        <p>Dari <strong class="project-sender"></strong></p>
+      </div>
+      <dl>
+        <div><dt>Updated</dt><dd class="project-updated"></dd></div>
+        <div><dt>Photos</dt><dd class="project-photos"></dd></div>
+        <div><dt>Source</dt><dd class="project-source"></dd></div>
+      </dl>
+      <div class="primary-actions">
+        <button class="card-button copy-studio" type="button">Copy magic link</button>
+        <a class="card-button card-button--secondary open-studio" target="_blank" rel="noreferrer">Open studio</a>
+      </div>
+      <div class="action-menu" hidden>
+        <a class="menu-open-gift" target="_blank" rel="noreferrer">Buka gift</a>
+        <button class="menu-archive" type="button"></button>
+        <button class="menu-delete" type="button">Hapus permanen</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="/shared/project.js"></script>
+  <script src="/runtime-config.js"></script>
+  <script src="/admin/app.js"></script>
+</body>
 </html>

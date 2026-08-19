@@ -1,0 +1,9 @@
+worker/
+tests/
+dev/
+fixtures/
+api/
+server.js
+assets/photos/cindy.png
+assets/audio/song.mp3
+*.md
