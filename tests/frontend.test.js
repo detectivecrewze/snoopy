@@ -27,8 +27,7 @@ test("gift production shell no longer loads customer config.js", () => {
   assert.doesNotMatch(gift, /src=["']\/?config\.js|window\.GIFT_CONFIG/);
   assert.match(gift, /\/shared\/project\.js/);
   assert.match(gift, /\/runtime-config\.js/);
-  assert.match(gift, /gif-slot--memory-room/);
-  assert.match(gift, /data-gif="memoriesLogo"/);
+  assert.doesNotMatch(gift, /gif-slot--memory-room/);
 });
 
 test("music catalog supports covers, selection, and audio preview", () => {
