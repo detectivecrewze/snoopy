@@ -1,7 +1,7 @@
 (function (root) {
   "use strict";
 
-  const fixtureUrl = "/fixtures/cindy.json";
+  const fixtureUrl = "/fixtures/sample.json";
   const projectKey = id => `snoopy-studio:project:${id}`;
   const wishesKey = id => `snoopy-studio:wishes:${id}`;
 

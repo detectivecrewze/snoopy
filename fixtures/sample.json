@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "projectId": "sample-demo",
+  "status": "published",
+  "identity": {
+    "recipient": "Nama Penerima",
+    "sender": "Nama Pengirim",
+    "birthdayDate": "2030-01-01",
+    "subtitle": "Empat kejutan kecil yang dibuat khusus untukmu."
+  },
+  "warmWish": {
+    "message": "Selamat ulang tahun! Semoga hari spesialmu dipenuhi kebahagiaan, tawa, dan banyak momen indah yang layak dikenang.",
+    "signature": "Nama Pengirim"
+  },
+  "gallery": [
+    {
+      "id": "photo-sample",
+      "imageUrl": "/assets/gifs/cozy.webp",
+      "title": "Momen favorit",
+      "story": "Tambahkan cerita singkat yang membuat foto ini terasa istimewa."
+    }
+  ],
+  "music": {
+    "tracks": [
+      {
+        "id": "track-sample",
+        "sourceType": "catalog",
+        "catalogId": "happy-birthday-instrumental",
+        "audioUrl": "https://arcade-edition.aldoramadhan16.workers.dev/files/1776257098669-s2m9j.mp3",
+        "coverUrl": "https://arcade-edition.aldoramadhan16.workers.dev/files/1776257093005-d0b1mn.jpg",
+        "title": "Happy Birthday Instrumental",
+        "artist": "Piano Instrumental"
+      }
+    ]
+  },
+  "letter": {
+    "greeting": "Untuk kamu yang sedang berulang tahun,",
+    "paragraphs": [
+      "Tuliskan pesan personalmu di sini. Ceritakan hal-hal kecil yang kamu syukuri, kenangan yang ingin disimpan, atau doa baik untuk perjalanan berikutnya.",
+      "Kamu dapat menambah beberapa paragraf agar surat ini terasa benar-benar datang dari hati."
+    ],
+    "signoff": "Dengan penuh kasih,\nNama Pengirim"
+  },
+  "settings": { "wishEnabled": true },
+  "createdAt": "2030-01-01T00:00:00.000Z",
+  "updatedAt": "2030-01-01T00:00:00.000Z",
+  "publishedAt": "2030-01-01T00:00:00.000Z"
+}

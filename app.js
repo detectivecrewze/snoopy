@@ -10,13 +10,14 @@
 
   let projectId = Project.projectIdFromPath(location.pathname, location.search);
   if (!projectId && isLocal && location.pathname === "/") {
-    history.replaceState({}, "", "/gift/cindy-demo?mock=1");
-    projectId = "cindy-demo";
+    history.replaceState({}, "", "/gift/sample-demo?mock=1");
+    projectId = "sample-demo";
   }
 
   let config = null;
   let api = null;
   let memoryIndex = 0;
+  let musicIndex = 0;
   let memories = [];
   let typingTimer = null;
   let fullLetterMarkup = "";
@@ -60,8 +61,6 @@
     $("#home-subtitle").textContent = identity.subtitle;
     $("#wish-message").textContent = config.warmWish.message || "Semoga hari istimewamu dipenuhi kebahagiaan.";
     $("#wish-signature").textContent = config.warmWish.signature || identity.sender;
-    $("#track-name").textContent = config.music.title || "Our Special Song";
-    $("#artist-name").textContent = config.music.artist || "From me, to you";
     $("#letter-date").textContent = Project.formatBirthdayDate(identity.birthdayDate);
     $("#letter-heading").textContent = config.letter.greeting || `Dear ${identity.recipient},`;
     const singlePhoto = config.gallery.length === 1;
@@ -154,10 +153,45 @@
   function setupMusicSource() {
     audio.pause();
     audio.preload = "auto";
-    audio.src = config.music.audioUrl || "";
-    if (audio.src) audio.load();
-    $("#external-song").hidden = true;
-    $("#music-help").textContent = config.music.audioUrl ? "Your birthday soundtrack is ready." : "Lagu belum dipilih.";
+    musicIndex = Math.min(musicIndex, Math.max(0, config.music.tracks.length - 1));
+    loadMusicTrack(musicIndex);
+  }
+
+  function loadMusicTrack(index, autoplay = false) {
+    const tracks = config.music.tracks || [];
+    const track = tracks[index];
+    if (!track) {
+      audio.removeAttribute("src");
+      $("#track-name").textContent = "Belum ada lagu";
+      $("#artist-name").textContent = "Playlist masih kosong";
+      $("#music-help").textContent = "Lagu belum dipilih.";
+      return;
+    }
+    musicIndex = index;
+    audio.src = track.audioUrl;
+    audio.load();
+    $("#track-name").textContent = track.title || `Lagu ${index + 1}`;
+    $("#artist-name").textContent = track.artist || "Untukmu";
+    const musicCover = $("#gift-track-cover");
+    const coverPlaceholder = $("#gift-cover-placeholder");
+    musicCover.onerror = () => {
+      musicCover.onerror = null;
+      musicCover.src = "/assets/gifs/dance.webp";
+    };
+    musicCover.src = track.coverUrl || "/assets/gifs/dance.webp";
+    musicCover.hidden = false;
+    coverPlaceholder.hidden = true;
+    $("#music-help").textContent = `Lagu ${index + 1} dari ${tracks.length}`;
+    $("#previous-track").disabled = tracks.length < 2;
+    $("#next-track").disabled = tracks.length < 2;
+    if (autoplay) audio.play().catch(() => {});
+  }
+
+  function moveMusicTrack(direction) {
+    const tracks = config.music.tracks || [];
+    if (tracks.length < 2) return;
+    const nextIndex = (musicIndex + direction + tracks.length) % tracks.length;
+    loadMusicTrack(nextIndex, true);
   }
 
   function escapeHtml(value) {
@@ -237,7 +271,7 @@
   $("#state-retry").addEventListener("click", () => location.reload());
   $("#start-btn").addEventListener("click", async () => {
     showScreen(config.settings.wishEnabled ? wishScreen : home);
-    if (!config.music.audioUrl) return;
+    if (!config.music.tracks.length) return;
     audio.volume = .78;
     try { await audio.play(); } catch (_) { /* Browser may require a second interaction. */ }
   });
@@ -301,12 +335,16 @@
   });
   audio.addEventListener("play", updatePlayerState);
   audio.addEventListener("pause", updatePlayerState);
-  audio.addEventListener("ended", updatePlayerState);
+  audio.addEventListener("ended", () => {
+    if (config.music.tracks.length > 1) moveMusicTrack(1);
+    else updatePlayerState();
+  });
   $("#play-button").addEventListener("click", async () => {
     try { audio.paused ? await audio.play() : audio.pause(); }
     catch (_) { $("#music-help").textContent = "Lagu belum dapat diputar. Coba tekan play sekali lagi."; }
   });
-  $("#restart-button").addEventListener("click", () => { audio.currentTime = 0; });
+  $("#previous-track").addEventListener("click", () => moveMusicTrack(-1));
+  $("#next-track").addEventListener("click", () => moveMusicTrack(1));
   $("#seek").addEventListener("input", event => {
     if (audio.duration) audio.currentTime = (Number(event.target.value) / 100) * audio.duration;
   });

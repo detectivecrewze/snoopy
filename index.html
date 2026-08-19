@@ -207,6 +207,7 @@
         <div class="player-card">
           <p class="eyebrow">Surprise no. 03</p>
           <h2 id="music-heading">A song for you</h2>
+          <div class="gift-track-cover"><img id="gift-track-cover" alt="Cover lagu" hidden><span id="gift-cover-placeholder">MUSIC</span></div>
           <p class="track-name" id="track-name">Our Special Song</p>
           <p class="artist-name" id="artist-name">From me, to you</p>
           <audio id="audio" preload="metadata"></audio>
@@ -216,11 +217,11 @@
             <span id="duration">0:00</span>
           </div>
           <div class="player-actions">
-            <button class="round-button" id="restart-button" type="button" aria-label="Restart song">↺</button>
+            <button class="round-button" id="previous-track" type="button" aria-label="Lagu sebelumnya">←</button>
             <button class="play-button" id="play-button" type="button" aria-label="Play song"><span id="play-icon">▶</span></button>
-            <a class="round-button external-song" id="external-song" href="#" target="_blank" rel="noreferrer" aria-label="Open song link">↗</a>
+            <button class="round-button" id="next-track" type="button" aria-label="Lagu berikutnya">→</button>
           </div>
-          <p class="music-help" id="music-help">Add <code>assets/audio/song.mp3</code> or set an external song link.</p>
+          <p class="music-help" id="music-help">Playlist hadiahmu akan diputar di sini.</p>
         </div>
       </div>
     </article>

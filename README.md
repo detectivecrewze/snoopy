@@ -10,8 +10,8 @@ npm start
 
 Buka:
 
-- Gift demo: `http://localhost:3000/gift/cindy-demo?mock=1`
-- Studio demo: `http://localhost:3000/studio/cindy-demo?mock=1#token=demo-token`
+- Gift demo: `http://localhost:3000/gift/sample-demo?mock=1`
+- Studio demo: `http://localhost:3000/studio/sample-demo?mock=1#token=demo-token`
 - Admin dashboard: `http://localhost:3000/admin`
 
 Magic token dipindahkan dari URL fragment ke `sessionStorage` saat studio dibuka. Mock draft dan wish disimpan di `localStorage`. Perilaku ini hanya aktif pada localhost dan tidak menjadi fallback production.
@@ -20,7 +20,7 @@ Saat dashboard admin dibuka dari localhost, magic link Studio menggunakan `/stud
 
 ## Vercel static deployment
 
-Vercel dikunci ke preset `Other`, menjalankan `npm run build`, dan hanya mempublikasikan folder `dist`. Build tersebut menggunakan allowlist frontend sehingga `server.js`, Worker, tests, fixture development, source Markdown, foto Cindy, dan MP3 lokal tidak masuk deployment.
+Vercel dikunci ke preset `Other`, menjalankan `npm run build`, dan hanya mempublikasikan folder `dist`. Build tersebut menggunakan allowlist frontend sehingga `server.js`, Worker, tests, fixture development, source Markdown, dan media development lokal tidak masuk deployment.
 
 Jangan memilih preset Express atau mengarahkan Output Directory ke root. Konfigurasi `vercel.json` sudah menetapkan Output Directory ke `dist` dan akan mengoverride pengaturan deployment berikutnya. Karena `cleanUrls` aktif, target rewrite menggunakan `/` dan `/studio` tanpa suffix `.html`.
 
@@ -44,7 +44,7 @@ Penghapusan permanen turut membersihkan config project, wish inbox, idempotency 
 
 ## Dynamic project contract
 
-Customer content menggunakan schema version 1 dengan bagian `identity`, `warmWish`, `gallery`, `music`, `letter`, dan `settings`. Gift publik mengambil data dari `GET /api/gift/:id`; studio menggunakan endpoint `/api/studio/:id`, `/api/upload`, dan `/api/wishes/:id` melalui adapter bersama.
+Customer content menggunakan schema version 2 dengan bagian `identity`, `warmWish`, `gallery`, `music`, `letter`, dan `settings`. Schema v1 dengan satu lagu tetap dimigrasikan otomatis saat dibaca. Gift publik mengambil data dari `GET /api/gift/:id`; studio menggunakan endpoint `/api/studio/:id`, `/api/upload`, dan `/api/wishes/:id` melalui adapter bersama.
 
 GIF dan visual Snoopy adalah aset tema statis. Data penerima, pengirim, tanggal, ucapan, galeri, lagu, dan surat tidak disimpan di HTML gift atau JavaScript production.
 
@@ -55,12 +55,18 @@ Katalog berada di `assets/data/music.json`. Format yang didukung:
 ```json
 {
   "tracks": [
-    { "id": "song-id", "title": "Song title", "artist": "Artist", "url": "https://cdn.example/song.mp3" }
+    {
+      "id": "song-id",
+      "title": "Song title",
+      "artist": "Artist",
+      "coverUrl": "https://cdn.example/cover.jpg",
+      "audioUrl": "https://cdn.example/song.mp3"
+    }
   ]
 }
 ```
 
-Array langsung juga diterima. Studio turut mengenali alias `name`, `singer`, `src`, `audio`, dan `file`.
+Array langsung juga diterima. Studio menampilkan kartu katalog ber-cover, pencarian, preview audio, progress/seek, dan playlist maksimal tiga lagu. Alias lama `url`, `name`, `singer`, `src`, `audio`, dan `file` tetap dikenali. Lagu tanpa `coverUrl` menggunakan cover Snoopy bawaan.
 
 ## Checks
 

@@ -1,5 +1,6 @@
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const MAX_GALLERY_ITEMS = 6;
+export const MAX_MUSIC_TRACKS = 3;
 export const MAX_WISH_LENGTH = 280;
 export const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,63}$/;
 
@@ -28,7 +29,7 @@ export function emptyProject(projectId) {
     },
     warmWish: { message: "", signature: "" },
     gallery: [{ id: crypto.randomUUID(), imageUrl: "", title: "", story: "" }],
-    music: { sourceType: "catalog", catalogId: "", audioUrl: "", title: "", artist: "" },
+    music: { tracks: [], sourceType: "catalog", catalogId: "", audioUrl: "", coverUrl: "", title: "", artist: "" },
     letter: { greeting: "", paragraphs: [], signoff: "" },
     settings: { wishEnabled: true },
     createdAt: "",
@@ -52,6 +53,18 @@ export function normalizeProject(input, projectId, existing = null) {
     title: cleanText(item?.title, "", 100),
     story: cleanText(item?.story, "", 350)
   }));
+  const legacyTrack = music.audioUrl || music.title ? [music] : [];
+  const musicSource = Array.isArray(music.tracks) ? music.tracks : legacyTrack;
+  const tracks = musicSource.slice(0, MAX_MUSIC_TRACKS).map((track, index) => ({
+    id: cleanText(track?.id, `track-${index + 1}`, 100),
+    sourceType: track?.sourceType === "upload" ? "upload" : "catalog",
+    catalogId: cleanText(track?.catalogId, "", 100),
+    audioUrl: cleanMediaUrl(track?.audioUrl),
+    coverUrl: cleanMediaUrl(track?.coverUrl),
+    title: cleanText(track?.title, "", 100),
+    artist: cleanText(track?.artist, "", 100)
+  })).filter(track => track.audioUrl || track.title);
+  const primaryTrack = tracks[0] || { sourceType: "catalog", catalogId: "", audioUrl: "", coverUrl: "", title: "", artist: "" };
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -69,11 +82,8 @@ export function normalizeProject(input, projectId, existing = null) {
     },
     gallery: gallery.length ? gallery : emptyProject(projectId).gallery,
     music: {
-      sourceType: music.sourceType === "upload" ? "upload" : "catalog",
-      catalogId: cleanText(music.catalogId, "", 100),
-      audioUrl: cleanMediaUrl(music.audioUrl),
-      title: cleanText(music.title, "", 100),
-      artist: cleanText(music.artist, "", 100)
+      tracks,
+      ...primaryTrack
     },
     letter: {
       greeting: cleanText(letter.greeting, "", 120),
@@ -97,8 +107,8 @@ export function validatePublishedProject(project) {
   if (!project.identity.birthdayDate) errors.birthdayDate = "Tanggal ulang tahun wajib diisi.";
   if (project.warmWish.message.length < 3) errors.warmWish = "Warm Wishes wajib diisi.";
   if (!project.gallery.length || !project.gallery[0].imageUrl) errors.gallery = "Tambahkan setidaknya satu foto.";
-  if (!project.music.audioUrl) errors.music = "Pilih atau unggah satu lagu.";
-  if (!project.music.title) errors.musicTitle = "Judul lagu wajib diisi.";
+  if (!project.music.tracks.length) errors.music = "Pilih atau unggah setidaknya satu lagu.";
+  if (project.music.tracks.some(track => !track.audioUrl || !track.title)) errors.musicTitle = "Setiap lagu wajib memiliki file dan judul.";
   if (!project.letter.greeting) errors.greeting = "Greeting surat wajib diisi.";
   if (!project.letter.paragraphs.length) errors.letter = "Isi surat wajib diisi.";
   if (!project.letter.signoff) errors.signoff = "Signoff surat wajib diisi.";

@@ -141,7 +141,7 @@ snoopy-gift-standalone/
 │   ├── gifs/                  # Aset tema Snoopy statis
 │   ├── photos/                # Fixture development, bukan customer production
 │   └── audio/                 # Fixture development
-├── fixtures/cindy.json        # Fixture lokal; tidak boleh menjadi fallback production
+├── fixtures/sample.json       # Fixture generik lokal; tidak menjadi fallback production
 ├── dev/mock-api.js            # localStorage mock untuk gift dan Studio localhost
 └── tests/
     ├── frontend.test.js
@@ -167,7 +167,7 @@ Vercel menjalankan `npm run build` dan hanya mempublikasikan `dist/`. `build.mjs
 6. Wish disimpan di KV.
 7. Penerima membuka empat surprise:
    - Warm Wishes.
-   - Foto/girl gallery.
+   - Galeri foto.
    - Music turntable.
    - Surat langsung tanpa envelope.
 8. Musik menggunakan URL dari data project dan dimulai dari user gesture agar sesuai aturan autoplay browser.
@@ -182,9 +182,9 @@ Gift memiliki state loading, invalid ID, not found/unpublished, network error, d
 4. Studio memakai token sebagai `Authorization: Bearer ...`.
 5. Customer mengisi tujuh langkah:
    1. Identitas: penerima, pengirim, tanggal ulang tahun, subtitle.
-   2. Warm Wishes: pesan singkat dan signature.
-   3. Galeri: 1–6 foto, judul, dan cerita.
-   4. Musik: katalog atau upload MP3, judul, dan artis.
+   2. Warm Wishes: tiga preset generik, pesan custom, dan signature.
+   3. Galeri: 1–6 foto dalam editor grid, judul, dan cerita.
+   4. Musik: katalog atau upload MP3, cover, preview, dan playlist maksimal tiga lagu.
    5. Surat: greeting, paragraf, dan signoff.
    6. Wish Inbox: daftar wish terbaru dan timestamp.
    7. Live Preview, publish, gift URL, QR, dan download PNG.
@@ -231,7 +231,7 @@ Semua data berikut berasal dari payload API/KV:
 - Subtitle gift.
 - Warm Wishes dan signature.
 - Foto, judul foto, dan cerita.
-- URL audio, judul lagu, dan artis.
+- Playlist maksimal tiga lagu beserta URL audio, cover, judul, dan artis.
 - Greeting, paragraf surat, dan signoff.
 - Status wish inbox.
 
@@ -246,23 +246,23 @@ Hal berikut sengaja tetap berada di HTML/CSS/JS:
 - GIF Snoopy bawaan.
 - Typography dan decorative assets.
 
-Fixture Cindy hanya aktif di localhost untuk `cindy-demo` atau query `?mock=1`. Production tidak memiliki fallback ke Cindy.
+Fixture generik hanya aktif di localhost untuk `sample-demo` atau query `?mock=1`. Production tidak memiliki fallback ke data customer.
 
 ---
 
 ## 7. Kontrak Data Project
 
-Schema saat ini adalah `schemaVersion: 1`.
+Schema saat ini adalah `schemaVersion: 2`. Payload schema v1 dengan satu lagu dimigrasikan otomatis menjadi `music.tracks[]`.
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "gift-0123456789abcdef",
   "status": "draft",
   "identity": {
     "recipient": "Nama penerima",
     "sender": "Nama pengirim",
-    "birthdayDate": "2026-08-20",
+    "birthdayDate": "2030-01-01",
     "subtitle": "Empat kejutan kecil yang dibuat khusus untukmu."
   },
   "warmWish": {
@@ -278,14 +278,20 @@ Schema saat ini adalah `schemaVersion: 1`.
     }
   ],
   "music": {
-    "sourceType": "catalog",
-    "catalogId": "track-id",
-    "audioUrl": "https://media.example/song.mp3",
-    "title": "Judul lagu",
-    "artist": "Nama artis"
+    "tracks": [
+      {
+        "id": "track-id",
+        "sourceType": "catalog",
+        "catalogId": "catalog-track-id",
+        "audioUrl": "https://media.example/song.mp3",
+        "coverUrl": "https://media.example/cover.jpg",
+        "title": "Judul lagu",
+        "artist": "Nama artis"
+      }
+    ]
   },
   "letter": {
-    "greeting": "My dearest...",
+    "greeting": "Untuk kamu yang berulang tahun,",
     "paragraphs": ["Paragraf pertama", "Paragraf kedua"],
     "signoff": "Nama pengirim"
   },
@@ -302,6 +308,7 @@ Schema saat ini adalah `schemaVersion: 1`.
 
 - Project ID: lowercase alphanumeric dan dash, 3–64 karakter.
 - Maksimal galeri: 6 foto.
+- Maksimal playlist: 3 lagu.
 - Nama penerima/pengirim: maksimal 80 karakter.
 - Subtitle: maksimal 120 karakter.
 - Warm wish: maksimal 650 karakter.
@@ -540,8 +547,8 @@ Default server: `http://localhost:3000`.
 URL development:
 
 ```text
-Gift:   http://localhost:3000/gift/cindy-demo?mock=1
-Studio: http://localhost:3000/studio/cindy-demo?mock=1#token=demo-token
+Gift:   http://localhost:3000/gift/sample-demo?mock=1
+Studio: http://localhost:3000/studio/sample-demo?mock=1#token=demo-token
 Admin:  http://localhost:3000/admin
 ```
 
@@ -573,14 +580,15 @@ Perintah ini menjalankan syntax check pada frontend, Studio, admin, shared files
 Hasil terakhir pada 20 Agustus 2026:
 
 ```text
-tests: 13
-pass: 13
+tests: 15
+pass: 15
 fail: 0
 ```
 
 ### Automated coverage
 
 - Studio memiliki tujuh langkah dan memakai runtime config dinamis.
+- Katalog musik membaca `audioUrl`/`coverUrl`, mendukung pencarian, preview, seek, playlist maksimal tiga lagu, migrasi format lama, dan fallback cover.
 - Gift production tidak memuat konfigurasi customer lama.
 - Admin memiliki login, generator, filter, dan konfirmasi destructive delete.
 - Runtime config tidak mengandung secret.
@@ -878,6 +886,6 @@ Halaman utama:
 
 ## 20. Ringkasan untuk Agent yang Baru Masuk
 
-Project ini bukan lagi satu halaman gift Cindy. Sekarang ia adalah platform kecil dengan template gift dinamis, Studio self-edit, admin generator, Cloudflare Worker, KV Wish Inbox, R2 media storage, dan QR generator. Implementasi lokal serta automated test sudah selesai. Pekerjaan terpenting berikutnya adalah deployment nyata, production smoke test, security hardening, lalu integrasi Pakasir melalui endpoint internal yang sudah tersedia.
+Project ini sekarang merupakan platform kecil dengan template gift dinamis, Studio self-edit, admin generator, Cloudflare Worker, KV Wish Inbox, R2 media storage, dan QR generator. Seluruh fixture memakai data generik tanpa data customer. Implementasi lokal serta automated test sudah selesai. Pekerjaan terpenting berikutnya adalah deployment nyata, production smoke test, security hardening, lalu integrasi Pakasir melalui endpoint internal yang sudah tersedia.
 
 Jangan membangun ulang arsitektur dari nol. Lanjutkan dari kontrak dan endpoint yang ada, perbaiki limitation secara bertahap, dan jaga agar data customer tetap dinamis serta private state tidak pernah masuk ke gift publik.

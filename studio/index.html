@@ -73,7 +73,7 @@
               </label>
               <label class="field">
                 <span>Nama pengirim</span>
-                <input id="sender" name="sender" maxlength="80" autocomplete="off" placeholder="Contoh: Rapi" required>
+                <input id="sender" name="sender" maxlength="80" autocomplete="off" placeholder="Contoh: Nama pengirim" required>
                 <small class="field-error" data-error-for="sender"></small>
               </label>
               <label class="field">
@@ -94,6 +94,11 @@
               <h1 id="step-2-title">Beri satu pelukan lewat kata</h1>
               <p>Pesan ini tampil sebagai kejutan pertama. Singkat, hangat, dan langsung terasa personal.</p>
             </div>
+            <div class="wish-presets" aria-label="Preset Warm Wishes">
+              <button type="button" data-warm-preset="simple"><b>Singkat dan manis</b><span>Ucapan ringan untuk hari spesial.</span></button>
+              <button type="button" data-warm-preset="heartfelt"><b>Hangat dan tulus</b><span>Doa yang lebih personal dan penuh perhatian.</span></button>
+              <button type="button" data-warm-preset="cheerful"><b>Ceria dan optimis</b><span>Pesan penuh semangat untuk tahun yang baru.</span></button>
+            </div>
             <div class="paper-form">
               <label class="field">
                 <span>Warm Wishes</span>
@@ -103,7 +108,7 @@
               </label>
               <label class="field">
                 <span>Tanda tangan pendek</span>
-                <input id="warm-signature" maxlength="80" placeholder="Contoh: Rapi">
+                <input id="warm-signature" maxlength="80" placeholder="Contoh: dari seseorang yang menyayangimu">
               </label>
             </div>
           </section>
@@ -132,11 +137,12 @@
               <button id="upload-tab" type="button" data-music-source="upload">Upload MP3</button>
             </div>
             <div class="paper-form music-source" data-source-panel="catalog">
-              <label class="field">
-                <span>Katalog musik</span>
-                <select id="music-catalog"><option value="">Pilih satu lagu...</option></select>
+              <label class="field music-search-field">
+                <span>Cari lagu atau artis</span>
+                <input id="music-search" type="search" autocomplete="off" placeholder="Contoh: Nadin Amizah">
               </label>
               <p class="catalog-note" id="catalog-note">Katalog dibaca dari <code>assets/data/music.json</code>.</p>
+              <div class="music-catalog-grid" id="music-catalog-grid" role="listbox" aria-label="Katalog musik"></div>
             </div>
             <div class="paper-form music-source" data-source-panel="upload" hidden>
               <label class="upload-drop" for="music-file">
@@ -146,13 +152,23 @@
               </label>
               <p class="upload-status" id="music-upload-status"></p>
             </div>
+            <div class="playlist-panel">
+              <div class="playlist-heading"><div><b>Playlist kado</b><span>Pilih maksimal tiga lagu.</span></div><strong id="playlist-count">0/3</strong></div>
+              <div class="studio-playlist" id="studio-playlist"></div>
+            </div>
             <div class="paper-form two-columns compact-form">
-              <label class="field"><span>Judul lagu</span><input id="music-title" maxlength="100" placeholder="Judul lagu"><small class="field-error" data-error-for="musicTitle"></small></label>
-              <label class="field"><span>Artis</span><input id="music-artist" maxlength="100" placeholder="Nama artis"></label>
+              <label class="field"><span>Judul lagu aktif</span><input id="music-title" maxlength="100" placeholder="Pilih atau upload lagu dahulu"><small class="field-error" data-error-for="musicTitle"></small></label>
+              <label class="field"><span>Artis lagu aktif</span><input id="music-artist" maxlength="100" placeholder="Nama artis"></label>
               <div class="mini-player field--wide">
+                <div class="studio-cover"><img id="studio-track-cover" alt="Cover lagu" hidden><span id="studio-cover-placeholder">MUSIC</span></div>
                 <button id="studio-audio-toggle" type="button" aria-label="Putar preview">▶</button>
-                <div><strong id="studio-track-title">Belum ada lagu</strong><small id="studio-track-artist">Pilih lagu untuk mendengarkan preview</small></div>
+                <div class="studio-track-copy"><strong id="studio-track-title">Belum ada lagu</strong><small id="studio-track-artist">Pilih lagu untuk mendengarkan preview</small></div>
                 <audio id="studio-audio" preload="metadata"></audio>
+                <div class="studio-audio-progress">
+                  <span id="studio-current-time">0:00</span>
+                  <input id="studio-seek" type="range" min="0" max="100" value="0" aria-label="Posisi preview lagu">
+                  <span id="studio-duration">0:00</span>
+                </div>
               </div>
               <p class="section-error field--wide" data-error-for="music"></p>
             </div>
@@ -165,9 +181,9 @@
               <p>Pisahkan setiap paragraf dengan satu baris kosong. Isi surat tidak akan diubah otomatis.</p>
             </div>
             <div class="letter-editor">
-              <label class="field"><span>Greeting</span><input id="letter-greeting" maxlength="120" placeholder="My dearest birthday star," required><small class="field-error" data-error-for="greeting"></small></label>
+              <label class="field"><span>Greeting</span><input id="letter-greeting" maxlength="120" placeholder="Untuk kamu yang sedang berulang tahun," required><small class="field-error" data-error-for="greeting"></small></label>
               <label class="field"><span>Isi surat</span><textarea id="letter-body" rows="14" maxlength="8000" placeholder="Tulis paragraf pertama...&#10;&#10;Lanjutkan paragraf berikutnya..." required></textarea><small class="counter"><b id="letter-count">0</b>/8000</small><small class="field-error" data-error-for="letter"></small></label>
-              <label class="field"><span>Signoff</span><textarea id="letter-signoff" rows="3" maxlength="220" placeholder="With lots of love,&#10;Rapi" required></textarea><small class="field-error" data-error-for="signoff"></small></label>
+              <label class="field"><span>Signoff</span><textarea id="letter-signoff" rows="3" maxlength="220" placeholder="Dengan penuh kasih,&#10;Nama pengirim" required></textarea><small class="field-error" data-error-for="signoff"></small></label>
             </div>
           </section>
 
@@ -238,7 +254,7 @@
       <div class="gallery-fields">
         <div class="gallery-item-head"><strong>Foto <span class="gallery-number">1</span></strong><button class="remove-photo" type="button">Hapus</button></div>
         <p class="photo-upload-error" role="alert" hidden></p>
-        <label class="field"><span>Judul foto</span><input class="gallery-title" maxlength="100" placeholder="Contoh: The birthday girl"></label>
+        <label class="field"><span>Judul foto</span><input class="gallery-title" maxlength="100" placeholder="Contoh: Senyum favorit"></label>
         <label class="field"><span>Cerita kecil</span><textarea class="gallery-story" rows="3" maxlength="350" placeholder="Apa yang ingin kamu ceritakan tentang foto ini?"></textarea></label>
       </div>
     </article>

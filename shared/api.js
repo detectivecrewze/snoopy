@@ -47,7 +47,7 @@
 
   function isMockEnabled(projectId) {
     const params = new URLSearchParams(location.search);
-    return DEV_HOSTS.has(location.hostname) && (projectId === "cindy-demo" || params.get("mock") === "1");
+    return DEV_HOSTS.has(location.hostname) && (projectId === "sample-demo" || params.get("mock") === "1");
   }
 
   function tokenHeaders(token) {

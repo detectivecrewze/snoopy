@@ -88,11 +88,14 @@ function tokenFromStudioUrl(url) {
 function completeProject(project) {
   return {
     ...project,
-    identity: { recipient: "Cindy", sender: "Rapi", birthdayDate: "2026-08-20", subtitle: "Empat kejutan untukmu." },
-    warmWish: { message: "Semoga selalu bahagia dan sehat.", signature: "Rapi" },
+    identity: { recipient: "Penerima", sender: "Pengirim", birthdayDate: "2030-01-01", subtitle: "Empat kejutan untukmu." },
+    warmWish: { message: "Semoga selalu bahagia dan sehat.", signature: "Pengirim" },
     gallery: [{ id: "photo-1", imageUrl: "https://media.test/photo.webp", title: "Birthday star", story: "A little portrait." }],
-    music: { sourceType: "catalog", catalogId: "song-1", audioUrl: "https://media.test/song.mp3", title: "Our Song", artist: "Artist" },
-    letter: { greeting: "My dearest Cindy,", paragraphs: ["Selamat ulang tahun."], signoff: "With love,\nRapi" },
+    music: { tracks: [
+      { id: "track-1", sourceType: "catalog", catalogId: "song-1", audioUrl: "https://media.test/song-1.mp3", coverUrl: "https://media.test/cover-1.jpg", title: "First Song", artist: "Artist One" },
+      { id: "track-2", sourceType: "catalog", catalogId: "song-2", audioUrl: "https://media.test/song-2.mp3", coverUrl: "https://media.test/cover-2.jpg", title: "Second Song", artist: "Artist Two" }
+    ] },
+    letter: { greeting: "Untuk kamu yang berulang tahun,", paragraphs: ["Selamat ulang tahun."], signoff: "Dengan kasih,\nPengirim" },
     settings: { wishEnabled: true }
   };
 }
@@ -145,7 +148,9 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
 
   const publicGift = await call(env, `/api/gift/${projectId}`);
   assert.equal(publicGift.response.status, 200);
-  assert.equal(publicGift.payload.project.identity.recipient, "Cindy");
+  assert.equal(publicGift.payload.project.identity.recipient, "Penerima");
+  assert.equal(publicGift.payload.project.music.tracks.length, 2);
+  assert.equal(publicGift.payload.project.music.tracks[1].title, "Second Song");
   assert.equal(Object.hasOwn(publicGift.payload.project, "auth"), false);
   assert.equal(Object.hasOwn(publicGift.payload, "wishes"), false);
 

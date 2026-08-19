@@ -29,6 +29,27 @@ test("gift production shell no longer loads customer config.js", () => {
   assert.match(gift, /\/runtime-config\.js/);
 });
 
+test("music catalog supports covers, selection, and audio preview", () => {
+  const catalog = JSON.parse(read("assets/data/music.json"));
+  const studio = read("studio/index.html");
+  const studioApp = read("studio/app.js");
+  const sharedProject = read("shared/project.js");
+  const workerProject = read("worker/src/project.js");
+  assert.ok(Array.isArray(catalog) && catalog.length > 1);
+  assert.ok(catalog.every(track => track.audioUrl || track.url));
+  assert.match(studio, /id="music-catalog-grid"/);
+  assert.match(studio, /id="studio-track-cover"/);
+  assert.match(studio, /id="studio-seek"/);
+  assert.match(studio, /id="studio-playlist"/);
+  assert.equal((studio.match(/data-warm-preset=/g) || []).length, 3);
+  assert.match(studioApp, /track\.audioUrl \|\| track\.url/);
+  assert.match(studioApp, /previewCatalogTrack/);
+  assert.match(studioApp, /selectCatalogTrack/);
+  assert.match(studioApp, /MAX_MUSIC_TRACKS/);
+  assert.match(sharedProject, /coverUrl/);
+  assert.match(workerProject, /coverUrl/);
+});
+
 test("admin dashboard includes secure login, generator, filters, and destructive confirmation", () => {
   const admin = read("admin/index.html");
   const adminApp = read("admin/app.js");

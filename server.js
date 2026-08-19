@@ -71,6 +71,6 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(PORT, () => {
   console.log(`Birthday gift ready at http://localhost:${PORT}`);
-  console.log(`Development gift: http://localhost:${PORT}/gift/cindy-demo?mock=1`);
-  console.log(`Development studio: http://localhost:${PORT}/studio/cindy-demo?mock=1#token=demo-token`);
+  console.log(`Development gift: http://localhost:${PORT}/gift/sample-demo?mock=1`);
+  console.log(`Development studio: http://localhost:${PORT}/studio/sample-demo?mock=1#token=demo-token`);
 });

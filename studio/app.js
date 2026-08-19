@@ -5,6 +5,12 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+  const DEFAULT_MUSIC_COVER = "/assets/gifs/dance.webp";
+  const WARM_PRESETS = Object.freeze({
+    simple: "Selamat ulang tahun! Semoga hari spesialmu dipenuhi kebahagiaan, tawa, dan banyak momen indah yang layak dikenang.",
+    heartfelt: "Di hari spesial ini, semoga kamu selalu dikelilingi orang-orang baik, diberi kesehatan, dan menemukan kebahagiaan dalam setiap langkah yang kamu jalani.",
+    cheerful: "Selamat membuka babak baru! Semoga tahun ini membawa lebih banyak keberanian, kesempatan baik, cerita seru, dan alasan untuk terus tersenyum."
+  });
   const projectId = Project.projectIdFromPath(location.pathname, location.search);
   const tokenStorageKey = `snoopy-studio:token:${projectId}`;
   const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
@@ -21,6 +27,8 @@
   let saveTimer = null;
   let previewTimer = null;
   let catalogTracks = [];
+  let previewTrackId = "";
+  let activeMusicIndex = 0;
   let qrInstance = null;
   let studioReady = false;
 
@@ -64,8 +72,6 @@
     $("#warm-message").value = project.warmWish.message;
     $("#warm-signature").value = project.warmWish.signature;
     $("#warm-count").textContent = String(project.warmWish.message.length);
-    $("#music-title").value = project.music.title;
-    $("#music-artist").value = project.music.artist;
     $("#letter-greeting").value = project.letter.greeting;
     $("#letter-body").value = project.letter.paragraphs.join("\n\n");
     $("#letter-signoff").value = project.letter.signoff;
@@ -73,12 +79,18 @@
     $("#wish-enabled").checked = project.settings.wishEnabled;
     $("#project-label").textContent = project.projectId;
     renderGallery();
-    selectMusicSource(project.music.sourceType);
-    updateMusicPreview();
+    activeMusicIndex = Math.min(activeMusicIndex, Math.max(0, project.music.tracks.length - 1));
+    renderPlaylist();
+    updateActiveMusicEditor();
     updatePublishedResult();
   }
 
   function readForm() {
+    const musicTracks = (draft.music.tracks || []).map(track => ({ ...track }));
+    if (musicTracks[activeMusicIndex]) {
+      musicTracks[activeMusicIndex].title = $("#music-title").value.trim();
+      musicTracks[activeMusicIndex].artist = $("#music-artist").value.trim();
+    }
     draft = Project.normalizeProject({
       ...draft,
       identity: {
@@ -92,11 +104,7 @@
         signature: $("#warm-signature").value
       },
       gallery: draft.gallery,
-      music: {
-        ...draft.music,
-        title: $("#music-title").value,
-        artist: $("#music-artist").value
-      },
+      music: { tracks: musicTracks },
       letter: {
         greeting: $("#letter-greeting").value,
         paragraphs: $("#letter-body").value.split(/\n\s*\n/).map(value => value.trim()).filter(Boolean),
@@ -142,8 +150,8 @@
     if (step === 2 && draft.warmWish.message.length < 3) errors.warmWish = "Ucapan singkat wajib diisi.";
     if (step === 3 && (!draft.gallery.length || !draft.gallery[0].imageUrl)) errors.gallery = "Tambahkan setidaknya satu foto.";
     if (step === 4) {
-      if (!draft.music.audioUrl) errors.music = "Pilih lagu katalog atau upload MP3.";
-      if (!draft.music.title) errors.musicTitle = "Judul lagu wajib diisi.";
+      if (!draft.music.tracks.length) errors.music = "Pilih atau upload setidaknya satu lagu.";
+      if (draft.music.tracks.some(track => !track.audioUrl || !track.title)) errors.musicTitle = "Setiap lagu wajib memiliki file dan judul.";
     }
     if (step === 5) {
       if (!draft.letter.greeting) errors.greeting = "Greeting surat wajib diisi.";
@@ -314,8 +322,68 @@
       id: String(track.id || `track-${index + 1}`),
       title: String(track.title || track.name || "Untitled"),
       artist: String(track.artist || track.singer || ""),
-      url: String(track.url || track.src || track.audio || track.file || "")
+      genre: String(track.genre || ""),
+      coverUrl: String(track.coverUrl || track.cover || track.imageUrl || DEFAULT_MUSIC_COVER),
+      url: String(track.audioUrl || track.url || track.src || track.audio || track.file || "")
     })).filter(track => track.url);
+  }
+
+  function renderCatalog(query = "") {
+    const grid = $("#music-catalog-grid");
+    const needle = query.trim().toLocaleLowerCase("id-ID");
+    const tracks = catalogTracks.filter(track => `${track.title} ${track.artist} ${track.genre}`.toLocaleLowerCase("id-ID").includes(needle));
+    grid.replaceChildren();
+    if (!tracks.length) {
+      const empty = document.createElement("p");
+      empty.className = "catalog-empty";
+      empty.textContent = needle ? "Lagu yang kamu cari belum ada di katalog." : "Katalog masih kosong. Kamu tetap dapat upload MP3.";
+      grid.appendChild(empty);
+      return;
+    }
+    tracks.forEach(track => {
+      const selectedIndex = draft.music.tracks.findIndex(item => item.catalogId === track.id);
+      const isSelected = selectedIndex >= 0;
+      const card = document.createElement("article");
+      card.className = `catalog-track${isSelected ? " is-selected" : ""}`;
+      card.dataset.trackId = track.id;
+      card.setAttribute("role", "option");
+      card.setAttribute("aria-selected", String(isSelected));
+
+      const cover = document.createElement("img");
+      cover.className = "catalog-cover";
+      cover.src = track.coverUrl;
+      cover.alt = `Cover ${track.title}`;
+      cover.loading = "lazy";
+      cover.addEventListener("error", () => {
+        if (!cover.src.endsWith(DEFAULT_MUSIC_COVER)) cover.src = DEFAULT_MUSIC_COVER;
+      }, { once: true });
+
+      const copy = document.createElement("div");
+      copy.className = "catalog-track-copy";
+      const title = document.createElement("strong");
+      title.textContent = track.title;
+      const artist = document.createElement("span");
+      artist.textContent = track.artist || "Unknown artist";
+      copy.append(title, artist);
+
+      const actions = document.createElement("div");
+      actions.className = "catalog-track-actions";
+      const preview = document.createElement("button");
+      preview.type = "button";
+      preview.className = "catalog-preview";
+      preview.dataset.previewTrack = track.id;
+      preview.textContent = previewTrackId === track.id && !$("#studio-audio").paused ? "Ⅱ Pause" : "▶ Preview";
+      preview.addEventListener("click", () => previewCatalogTrack(track));
+      const select = document.createElement("button");
+      select.type = "button";
+      select.className = "catalog-select";
+      select.textContent = isSelected ? "Ditambahkan" : "Tambah lagu";
+      select.disabled = !isSelected && draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS;
+      select.addEventListener("click", () => selectCatalogTrack(track));
+      actions.append(preview, select);
+      card.append(cover, copy, actions);
+      grid.appendChild(card);
+    });
   }
 
   async function loadCatalog() {
@@ -323,46 +391,213 @@
       const response = await fetch("/assets/data/music.json", { cache: "no-store" });
       if (!response.ok) throw new Error("Katalog belum tersedia.");
       catalogTracks = normalizeCatalog(await response.json());
-      const select = $("#music-catalog");
-      select.replaceChildren(new Option("Pilih satu lagu...", ""));
-      catalogTracks.forEach(track => select.add(new Option(`${track.title} · ${track.artist}`, track.id)));
-      select.value = draft.music.catalogId || "";
       $("#catalog-note").textContent = catalogTracks.length ? `${catalogTracks.length} lagu tersedia di katalog.` : "Katalog masih kosong. Kamu tetap dapat upload MP3.";
+      renderCatalog();
     } catch (error) {
       $("#catalog-note").textContent = error.message;
+      renderCatalog();
     }
   }
 
   function selectMusicSource(source) {
     const nextSource = source === "upload" ? "upload" : "catalog";
-    draft.music.sourceType = nextSource;
     $$('[data-music-source]').forEach(button => button.classList.toggle("is-active", button.dataset.musicSource === nextSource));
     $$('[data-source-panel]').forEach(panel => { panel.hidden = panel.dataset.sourcePanel !== nextSource; });
   }
 
-  function updateMusicPreview() {
+  function replaceMusicTracks(tracks) {
+    draft = Project.normalizeProject({ ...draft, music: { tracks } }, projectId);
+    activeMusicIndex = Math.min(activeMusicIndex, Math.max(0, draft.music.tracks.length - 1));
+  }
+
+  function renderPlaylist() {
+    const playlist = $("#studio-playlist");
+    const tracks = draft.music.tracks || [];
+    $("#playlist-count").textContent = `${tracks.length}/${Project.MAX_MUSIC_TRACKS}`;
+    playlist.replaceChildren();
+    if (!tracks.length) {
+      const empty = document.createElement("p");
+      empty.className = "playlist-empty";
+      empty.textContent = "Belum ada lagu. Preview katalog, lalu tambahkan lagu yang paling cocok.";
+      playlist.appendChild(empty);
+      return;
+    }
+    tracks.forEach((track, index) => {
+      const card = document.createElement("article");
+      card.className = `playlist-track${index === activeMusicIndex ? " is-active" : ""}`;
+      const cover = document.createElement("img");
+      cover.src = track.coverUrl || DEFAULT_MUSIC_COVER;
+      cover.alt = `Cover ${track.title || `lagu ${index + 1}`}`;
+      cover.addEventListener("error", () => { cover.src = DEFAULT_MUSIC_COVER; }, { once: true });
+      const copy = document.createElement("div");
+      copy.className = "playlist-track-copy";
+      const title = document.createElement("strong");
+      title.textContent = track.title || `Lagu ${index + 1}`;
+      const artist = document.createElement("span");
+      artist.textContent = track.artist || "Artis belum diisi";
+      copy.append(title, artist);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "playlist-remove";
+      remove.textContent = "Hapus dari playlist";
+      remove.addEventListener("click", event => {
+        event.stopPropagation();
+        const nextTracks = tracks.filter((_, trackIndex) => trackIndex !== index);
+        if (index < activeMusicIndex) activeMusicIndex -= 1;
+        replaceMusicTracks(nextTracks);
+        renderPlaylist();
+        renderCatalog($("#music-search").value);
+        updateActiveMusicEditor();
+        scheduleSave();
+      });
+      card.addEventListener("click", () => {
+        readForm();
+        activeMusicIndex = index;
+        renderPlaylist();
+        updateActiveMusicEditor();
+      });
+      card.append(cover, copy, remove);
+      playlist.appendChild(card);
+    });
+  }
+
+  function updateActiveMusicEditor() {
+    const track = draft.music.tracks[activeMusicIndex] || null;
+    $("#music-title").value = track?.title || "";
+    $("#music-artist").value = track?.artist || "";
+    $("#music-title").disabled = !track;
+    $("#music-artist").disabled = !track;
+    selectMusicSource(track?.sourceType || "catalog");
+    previewTrackId = track?.catalogId || track?.id || "";
+    showPlayerTrack(track || {});
+  }
+
+  function formatAudioTime(seconds) {
+    if (!Number.isFinite(seconds)) return "0:00";
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+  }
+
+  function showPlayerTrack(track) {
     const audio = $("#studio-audio");
     audio.pause();
-    if (draft.music.audioUrl && audio.src !== draft.music.audioUrl) audio.src = draft.music.audioUrl;
-    $("#studio-track-title").textContent = draft.music.title || "Belum ada lagu";
-    $("#studio-track-artist").textContent = draft.music.artist || "Pilih lagu untuk mendengarkan preview";
+    const audioUrl = track.audioUrl || track.url || "";
+    if (audioUrl && audio.src !== new URL(audioUrl, location.href).href) {
+      audio.src = audioUrl;
+      audio.load();
+    }
+    if (!audioUrl) audio.removeAttribute("src");
+    $("#studio-track-title").textContent = track.title || "Belum ada lagu";
+    $("#studio-track-artist").textContent = track.artist || "Pilih lagu untuk mendengarkan preview";
+    const cover = $("#studio-track-cover");
+    const placeholder = $("#studio-cover-placeholder");
+    cover.onerror = () => {
+      cover.onerror = () => {
+        cover.hidden = true;
+        placeholder.hidden = false;
+      };
+      cover.src = DEFAULT_MUSIC_COVER;
+    };
+    cover.src = track.coverUrl || DEFAULT_MUSIC_COVER;
+    cover.hidden = false;
+    placeholder.hidden = true;
+    $("#studio-current-time").textContent = "0:00";
+    $("#studio-duration").textContent = "0:00";
+    $("#studio-seek").value = "0";
     $("#studio-audio-toggle").textContent = "▶";
+  }
+
+  function updateMusicPreview() {
+    const track = draft.music.tracks[activeMusicIndex] || {};
+    previewTrackId = track.catalogId || track.id || "";
+    showPlayerTrack(track);
+  }
+
+  async function previewCatalogTrack(track) {
+    const audio = $("#studio-audio");
+    const targetUrl = new URL(track.url, location.href).href;
+    if (previewTrackId === track.id && audio.src === targetUrl && !audio.paused) {
+      audio.pause();
+      return;
+    }
+    previewTrackId = track.id;
+    showPlayerTrack(track);
+    try {
+      await audio.play();
+      setError("music", "");
+    } catch (error) {
+      setError("music", "Preview belum dapat diputar. Periksa akses file audio dari CDN.");
+      console.error("Music preview failed", { trackId: track.id, message: error.message });
+    }
+  }
+
+  function syncCatalogPlaybackButtons() {
+    const audio = $("#studio-audio");
+    $$('[data-preview-track]').forEach(button => {
+      button.textContent = button.dataset.previewTrack === previewTrackId && !audio.paused ? "Ⅱ Pause" : "▶ Preview";
+    });
+  }
+
+  function selectCatalogTrack(track) {
+    const audio = $("#studio-audio");
+    const keepPlaying = previewTrackId === track.id && !audio.paused;
+    const existingIndex = draft.music.tracks.findIndex(item => item.catalogId === track.id);
+    if (existingIndex >= 0) {
+      activeMusicIndex = existingIndex;
+      renderPlaylist();
+      updateActiveMusicEditor();
+      return;
+    }
+    if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) {
+      setError("music", "Playlist sudah penuh. Hapus satu lagu sebelum menambahkan lagu lain.");
+      return;
+    }
+    const nextTrack = {
+      id: Project.makeId("track"),
+      sourceType: "catalog",
+      catalogId: track.id,
+      audioUrl: track.url,
+      coverUrl: track.coverUrl,
+      title: track.title,
+      artist: track.artist
+    };
+    replaceMusicTracks([...draft.music.tracks, nextTrack]);
+    activeMusicIndex = draft.music.tracks.length - 1;
+    renderPlaylist();
+    updateActiveMusicEditor();
+    if (keepPlaying) {
+      previewTrackId = track.id;
+      $("#studio-audio").play().catch(() => {});
+    }
+    renderCatalog($("#music-search").value);
+    setError("music", "");
+    scheduleSave();
   }
 
   async function uploadMusic(file) {
     if (!file) return;
+    if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) return setError("music", "Playlist maksimal berisi tiga lagu.");
     if (file.type !== "audio/mpeg" && !file.name.toLowerCase().endsWith(".mp3")) return setError("music", "Gunakan file MP3.");
     if (file.size > 25 * 1024 * 1024) return setError("music", "Ukuran MP3 maksimal 25 MB.");
     $("#music-upload-status").textContent = "Mengunggah MP3...";
     setSaveState("saving", "Mengunggah lagu...");
     try {
       const result = await api.upload(file, "audio");
-      draft.music.audioUrl = result.url;
-      draft.music.catalogId = "";
-      if (!$("#music-title").value) $("#music-title").value = file.name.replace(/\.mp3$/i, "");
+      const uploadedTrack = {
+        id: Project.makeId("track"),
+        sourceType: "upload",
+        catalogId: "",
+        audioUrl: result.url,
+        coverUrl: DEFAULT_MUSIC_COVER,
+        title: file.name.replace(/\.mp3$/i, ""),
+        artist: ""
+      };
+      replaceMusicTracks([...draft.music.tracks, uploadedTrack]);
+      activeMusicIndex = draft.music.tracks.length - 1;
       $("#music-upload-status").textContent = `${file.name} siap digunakan.`;
-      readForm();
-      updateMusicPreview();
+      renderPlaylist();
+      renderCatalog($("#music-search").value);
+      updateActiveMusicEditor();
       scheduleSave();
     } catch (error) {
       $("#music-upload-status").textContent = error.message;
@@ -536,8 +771,13 @@
   function bindEvents() {
     $("#studio-form").addEventListener("input", event => {
       if (event.target.type === "file") return;
+      if (event.target === $("#music-search")) return;
       if (event.target === $("#warm-message")) $("#warm-count").textContent = String(event.target.value.length);
       if (event.target === $("#letter-body")) $("#letter-count").textContent = String(event.target.value.length);
+      if (event.target === $("#music-title") || event.target === $("#music-artist")) {
+        readForm();
+        renderPlaylist();
+      }
       scheduleSave();
     });
     $("#studio-form").addEventListener("change", event => {
@@ -552,27 +792,43 @@
       renderGallery();
       scheduleSave();
     });
-    $$('[data-music-source]').forEach(button => button.addEventListener("click", () => {
-      selectMusicSource(button.dataset.musicSource);
+    $$('[data-warm-preset]').forEach(button => button.addEventListener("click", () => {
+      $("#warm-message").value = WARM_PRESETS[button.dataset.warmPreset] || "";
+      $("#warm-count").textContent = String($("#warm-message").value.length);
+      setError("warmWish", "");
       scheduleSave();
     }));
-    $("#music-catalog").addEventListener("change", event => {
-      const track = catalogTracks.find(item => item.id === event.target.value);
-      if (!track) return;
-      draft.music = { sourceType: "catalog", catalogId: track.id, audioUrl: track.url, title: track.title, artist: track.artist };
-      $("#music-title").value = track.title;
-      $("#music-artist").value = track.artist;
-      updateMusicPreview();
-      scheduleSave();
-    });
+    $$('[data-music-source]').forEach(button => button.addEventListener("click", () => selectMusicSource(button.dataset.musicSource)));
+    $("#music-search").addEventListener("input", event => renderCatalog(event.target.value));
     $("#music-file").addEventListener("change", event => uploadMusic(event.target.files[0]));
     $("#studio-audio-toggle").addEventListener("click", async () => {
       const audio = $("#studio-audio");
-      if (!draft.music.audioUrl) return setError("music", "Pilih lagu terlebih dahulu.");
+      if (!audio.src) return setError("music", "Pilih atau preview lagu terlebih dahulu.");
       try { audio.paused ? await audio.play() : audio.pause(); } catch (_) { setError("music", "Preview lagu belum dapat diputar."); }
     });
-    $("#studio-audio").addEventListener("play", () => { $("#studio-audio-toggle").textContent = "Ⅱ"; });
-    $("#studio-audio").addEventListener("pause", () => { $("#studio-audio-toggle").textContent = "▶"; });
+    $("#studio-audio").addEventListener("play", () => {
+      $("#studio-audio-toggle").textContent = "Ⅱ";
+      syncCatalogPlaybackButtons();
+    });
+    $("#studio-audio").addEventListener("pause", () => {
+      $("#studio-audio-toggle").textContent = "▶";
+      syncCatalogPlaybackButtons();
+    });
+    $("#studio-audio").addEventListener("loadedmetadata", event => {
+      $("#studio-duration").textContent = formatAudioTime(event.target.duration);
+    });
+    $("#studio-audio").addEventListener("timeupdate", event => {
+      const audio = event.target;
+      $("#studio-current-time").textContent = formatAudioTime(audio.currentTime);
+      $("#studio-seek").value = audio.duration ? String((audio.currentTime / audio.duration) * 100) : "0";
+    });
+    $("#studio-audio").addEventListener("error", () => {
+      setError("music", "File audio tidak dapat dibuka dari CDN. Coba lagu lain atau periksa URL medianya.");
+    });
+    $("#studio-seek").addEventListener("input", event => {
+      const audio = $("#studio-audio");
+      if (audio.duration) audio.currentTime = (Number(event.target.value) / 100) * audio.duration;
+    });
     $("#refresh-wishes").addEventListener("click", loadWishes);
     $("#refresh-preview").addEventListener("click", () => { $("#gift-preview").src = previewGiftUrl(String(Date.now())); });
     $("#gift-preview").addEventListener("load", () => window.setTimeout(sendPreview, 60));
@@ -605,7 +861,6 @@
       draft = Project.normalizeProject(payload.project || payload, projectId);
       fillForm(draft);
       await loadCatalog();
-      $("#music-catalog").value = draft.music.catalogId || "";
       bindEvents();
       showStudio();
       goToStep(1, { skipValidation: true });

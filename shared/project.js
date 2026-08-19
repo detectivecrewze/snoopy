@@ -5,8 +5,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
   const MAX_GALLERY_ITEMS = 6;
+  const MAX_MUSIC_TRACKS = 3;
   const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,63}$/;
 
   const THEME_GIFS = Object.freeze({
@@ -46,13 +47,7 @@
       },
       warmWish: { message: "", signature: "" },
       gallery: [{ id: makeId("photo"), imageUrl: "", title: "", story: "" }],
-      music: {
-        sourceType: "catalog",
-        catalogId: "",
-        audioUrl: "",
-        title: "",
-        artist: ""
-      },
+      music: { tracks: [], sourceType: "catalog", catalogId: "", audioUrl: "", coverUrl: "", title: "", artist: "" },
       letter: { greeting: "", paragraphs: [], signoff: "" },
       settings: { wishEnabled: true },
       createdAt: "",
@@ -76,6 +71,18 @@
       title: text(item && item.title, ""),
       story: text(item && (item.story || item.caption), "")
     }));
+    const legacyTrack = music.audioUrl || music.audioFile || music.title ? [music] : [];
+    const musicSource = Array.isArray(music.tracks) ? music.tracks : legacyTrack;
+    const tracks = musicSource.slice(0, MAX_MUSIC_TRACKS).map((track, index) => ({
+      id: text(track && track.id, `track-${index + 1}`),
+      sourceType: track && track.sourceType === "upload" ? "upload" : "catalog",
+      catalogId: text(track && track.catalogId, ""),
+      audioUrl: text(track && (track.audioUrl || track.audioFile), ""),
+      coverUrl: text(track && (track.coverUrl || track.cover), ""),
+      title: text(track && track.title, ""),
+      artist: text(track && track.artist, "")
+    })).filter(track => track.audioUrl || track.title);
+    const primaryTrack = tracks[0] || { sourceType: "catalog", catalogId: "", audioUrl: "", coverUrl: "", title: "", artist: "" };
 
     return {
       schemaVersion: SCHEMA_VERSION,
@@ -93,11 +100,8 @@
       },
       gallery: gallery.length ? gallery : fallback.gallery,
       music: {
-        sourceType: music.sourceType === "upload" ? "upload" : "catalog",
-        catalogId: text(music.catalogId, ""),
-        audioUrl: text(music.audioUrl || music.audioFile, ""),
-        title: text(music.title, ""),
-        artist: text(music.artist, "")
+        tracks,
+        ...primaryTrack
       },
       letter: {
         greeting: text(letter.greeting, ""),
@@ -124,8 +128,8 @@
     if (!normalized.identity.birthdayDate) add("birthdayDate", "Tanggal ulang tahun wajib diisi.");
     if (normalized.warmWish.message.length < 3) add("warmWish", "Ucapan singkat wajib diisi.");
     if (!normalized.gallery.length || !normalized.gallery[0].imageUrl) add("gallery", "Tambahkan setidaknya satu foto.");
-    if (!normalized.music.audioUrl) add("music", "Pilih atau unggah satu lagu.");
-    if (!normalized.music.title) add("musicTitle", "Judul lagu wajib diisi.");
+    if (!normalized.music.tracks.length) add("music", "Pilih atau unggah setidaknya satu lagu.");
+    if (normalized.music.tracks.some(track => !track.audioUrl || !track.title)) add("musicTitle", "Setiap lagu wajib memiliki file dan judul.");
     if (!normalized.letter.greeting) add("greeting", "Greeting surat wajib diisi.");
     if (!normalized.letter.paragraphs.length) add("letter", "Isi surat wajib diisi.");
     if (!normalized.letter.signoff) add("signoff", "Signoff surat wajib diisi.");
@@ -159,6 +163,7 @@
   return {
     SCHEMA_VERSION,
     MAX_GALLERY_ITEMS,
+    MAX_MUSIC_TRACKS,
     PROJECT_ID_PATTERN,
     THEME_GIFS,
     emptyProject,
