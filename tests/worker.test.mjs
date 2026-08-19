@@ -138,6 +138,14 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
   assert.equal(upload.response.status, 201);
   assert.match(upload.payload.url, new RegExp(`^https://media\\.test/snoopy/${projectId}/photos/`));
 
+  const videoForm = new FormData();
+  videoForm.append("projectId", projectId);
+  videoForm.append("kind", "video");
+  videoForm.append("file", new File([new Uint8Array([1, 2, 3])], "moment.mp4", { type: "video/mp4" }));
+  const videoUpload = await call(env, "/api/upload", { method: "POST", token: editToken, body: videoForm });
+  assert.equal(videoUpload.response.status, 201);
+  assert.match(videoUpload.payload.url, new RegExp(`^https://media\\.test/snoopy/${projectId}/videos/`));
+
   const publish = await call(env, `/api/studio/${projectId}`, {
     method: "PUT",
     token: editToken,

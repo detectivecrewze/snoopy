@@ -118,9 +118,9 @@
               <div>
                 <p class="kicker">LANGKAH 03</p>
                 <h1 id="step-3-title">Susun galeri polaroid</h1>
-                <p>Tambahkan 1 sampai 6 foto. Setiap foto punya judul dan cerita kecilnya sendiri.</p>
+                <p>Tambahkan 1 sampai 6 foto atau video. Video maksimal 20 MB dan diputar otomatis tanpa suara.</p>
               </div>
-              <button class="small-button" id="add-photo" type="button">Tambah foto</button>
+              <button class="small-button" id="add-photo" type="button">Tambah media</button>
             </div>
             <div class="gallery-editor" id="gallery-editor"></div>
             <p class="section-error" data-error-for="gallery"></p>
@@ -225,6 +225,15 @@
                 <div class="published-result" id="published-result" hidden>
                   <label>Link gift</label>
                   <div class="copy-row"><input id="gift-url" readonly><button id="copy-gift-url" type="button">Copy</button></div>
+                  <div class="qr-palette-picker">
+                    <b>Pilih warna QR</b>
+                    <div role="group" aria-label="Palet warna QR">
+                      <button class="is-active" type="button" data-qr-palette="berry"><i></i><span>Berry</span></button>
+                      <button type="button" data-qr-palette="comic"><i></i><span>Comic</span></button>
+                      <button type="button" data-qr-palette="midnight"><i></i><span>Midnight</span></button>
+                      <button type="button" data-qr-palette="lavender"><i></i><span>Lavender</span></button>
+                    </div>
+                  </div>
                   <div class="qr-card"><div id="qr-code"></div><p>Scan untuk membuka kadonya</p></div>
                   <button class="comic-button comic-button--yellow" id="download-qr" type="button">Download QR PNG</button>
                   <p class="download-status" id="download-status" role="status" aria-live="polite"></p>
@@ -248,7 +257,8 @@
     <article class="gallery-item">
       <div class="polaroid-upload">
         <img alt="Preview foto" hidden>
-        <label><input class="gallery-file" type="file" accept="image/jpeg,image/png,image/webp" hidden><span>Upload foto</span><small>JPG, PNG, WEBP</small></label>
+        <video muted autoplay loop playsinline hidden aria-label="Preview video"></video>
+        <label><input class="gallery-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden><span>Upload foto atau video</span><small>Foto 8 MB, video 20 MB</small></label>
         <i class="uploading-badge" hidden>Mengunggah...</i>
       </div>
       <div class="gallery-fields">

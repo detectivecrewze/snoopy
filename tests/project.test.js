@@ -16,7 +16,7 @@ test("normalizes project payload and removes unsupported gallery fields", () => 
 
   assert.equal(project.schemaVersion, 2);
   assert.equal(project.identity.recipient, "Penerima");
-  assert.deepEqual(project.gallery[0], { id: "photo-1", imageUrl: "/photo.png", title: "Portrait", story: "Story" });
+  assert.deepEqual(project.gallery[0], { id: "media-1", mediaType: "image", mediaUrl: "/photo.png", imageUrl: "/photo.png", title: "Portrait", story: "Story" });
   assert.equal(project.music.audioUrl, "/song.mp3");
   assert.equal(project.music.tracks.length, 1);
   assert.deepEqual(project.letter.paragraphs, ["First paragraph.", "Second paragraph."]);
@@ -46,6 +46,16 @@ test("music schema migrates legacy songs and caps playlists at three tracks", ()
   });
   assert.equal(playlist.music.tracks.length, Project.MAX_MUSIC_TRACKS);
   assert.equal(playlist.music.tracks[2].title, "Song 3");
+});
+
+test("gallery schema supports muted autoplay video media", () => {
+  const project = Project.normalizeProject({
+    projectId: "video-demo",
+    gallery: [{ id: "video-1", mediaType: "video", mediaUrl: "https://media.example/moment.mp4", title: "A short moment" }]
+  });
+  assert.equal(project.gallery[0].mediaType, "video");
+  assert.equal(project.gallery[0].mediaUrl, "https://media.example/moment.mp4");
+  assert.equal(project.gallery[0].imageUrl, "");
 });
 
 test("reads project id from gift and studio deep links", () => {

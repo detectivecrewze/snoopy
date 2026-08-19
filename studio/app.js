@@ -11,6 +11,12 @@
     heartfelt: "Di hari spesial ini, semoga kamu selalu dikelilingi orang-orang baik, diberi kesehatan, dan menemukan kebahagiaan dalam setiap langkah yang kamu jalani.",
     cheerful: "Selamat membuka babak baru! Semoga tahun ini membawa lebih banyak keberanian, kesempatan baik, cerita seru, dan alasan untuk terus tersenyum."
   });
+  const QR_PALETTES = Object.freeze({
+    berry: { ink: "#ef7297", accent: "#f5adc1", paper: "#fffaf1" },
+    comic: { ink: "#e94238", accent: "#f8d44c", paper: "#fffdf4" },
+    midnight: { ink: "#173560", accent: "#7db7df", paper: "#fff8d8" },
+    lavender: { ink: "#7251a3", accent: "#d9b8ee", paper: "#fff9fc" }
+  });
   const projectId = Project.projectIdFromPath(location.pathname, location.search);
   const tokenStorageKey = `snoopy-studio:token:${projectId}`;
   const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
@@ -30,6 +36,7 @@
   let previewTrackId = "";
   let activeMusicIndex = 0;
   let qrInstance = null;
+  let qrPaletteKey = "berry";
   let studioReady = false;
 
   function showState(title, message, options = {}) {
@@ -148,7 +155,7 @@
       if (!draft.identity.birthdayDate) errors.birthdayDate = "Tanggal ulang tahun wajib diisi.";
     }
     if (step === 2 && draft.warmWish.message.length < 3) errors.warmWish = "Ucapan singkat wajib diisi.";
-    if (step === 3 && (!draft.gallery.length || !draft.gallery[0].imageUrl)) errors.gallery = "Tambahkan setidaknya satu foto.";
+    if (step === 3 && (!draft.gallery.length || !draft.gallery[0].mediaUrl)) errors.gallery = "Tambahkan setidaknya satu foto atau video.";
     if (step === 4) {
       if (!draft.music.tracks.length) errors.music = "Pilih atau upload setidaknya satu lagu.";
       if (draft.music.tracks.some(track => !track.audioUrl || !track.title)) errors.musicTitle = "Setiap lagu wajib memiliki file dan judul.";
@@ -203,17 +210,21 @@
       node.dataset.galleryId = item.id;
       $(".gallery-number", node).textContent = String(index + 1).padStart(2, "0");
       const image = $("img", node);
+      const video = $("video", node);
       const upload = $(".polaroid-upload", node);
-      if (item.imageUrl) {
-        image.src = item.imageUrl;
-        image.hidden = false;
+      const mediaUrl = item.mediaUrl || item.imageUrl || "";
+      if (mediaUrl) {
+        const media = item.mediaType === "video" ? video : image;
+        media.src = mediaUrl;
+        media.hidden = false;
         upload.classList.add("has-image");
-        $(".polaroid-upload label span", node).textContent = "Ganti foto";
-        image.addEventListener("error", () => {
+        $(".polaroid-upload label span", node).textContent = "Ganti media";
+        media.addEventListener("error", () => {
           const errorBox = $(".photo-upload-error", node);
-          errorBox.textContent = "Foto sudah tersimpan, tetapi belum dapat dibuka dari CDN. Periksa domain R2 atau coba refresh sebentar lagi.";
+          errorBox.textContent = "Media sudah tersimpan, tetapi belum dapat dibuka dari CDN. Periksa domain R2 atau coba refresh sebentar lagi.";
           errorBox.hidden = false;
         });
+        if (item.mediaType === "video") video.play().catch(() => {});
       }
       $(".gallery-title", node).value = item.title;
       $(".gallery-story", node).value = item.story;
@@ -226,7 +237,7 @@
         renderGallery();
         scheduleSave();
       });
-      $(".gallery-file", node).addEventListener("change", event => uploadPhoto(event.target.files[0], item, node));
+      $(".gallery-file", node).addEventListener("change", event => uploadGalleryMedia(event.target.files[0], item, node));
       editor.appendChild(node);
     });
     $("#add-photo").disabled = draft.gallery.length >= Project.MAX_GALLERY_ITEMS;
@@ -278,39 +289,59 @@
     return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}.webp`, { type: "image/webp" });
   }
 
-  async function uploadPhoto(file, item, node) {
+  async function uploadGalleryMedia(file, item, node) {
     if (!file) return;
+    const extension = file.name.split(".").pop()?.toLowerCase() || "";
+    const isVideo = ["video/mp4", "video/webm"].includes(file.type) || ["mp4", "webm"].includes(extension);
+    if (isVideo && file.size > 20 * 1024 * 1024) {
+      const errorBox = $(".photo-upload-error", node);
+      errorBox.textContent = "Upload gagal: ukuran video maksimal 20 MB.";
+      errorBox.hidden = false;
+      return;
+    }
     const badge = $(".uploading-badge", node);
     const errorBox = $(".photo-upload-error", node);
     const image = $("img", node);
+    const video = $("video", node);
     const upload = $(".polaroid-upload", node);
     const previewUrl = URL.createObjectURL(file);
-    image.src = previewUrl;
-    image.hidden = false;
+    const previewMedia = isVideo ? video : image;
+    const hiddenMedia = isVideo ? image : video;
+    hiddenMedia.hidden = true;
+    hiddenMedia.removeAttribute("src");
+    previewMedia.src = previewUrl;
+    previewMedia.hidden = false;
     upload.classList.add("has-image");
-    $(".polaroid-upload label span", node).textContent = "Ganti foto";
-    image.addEventListener("load", () => URL.revokeObjectURL(previewUrl), { once: true });
-    image.addEventListener("error", () => URL.revokeObjectURL(previewUrl), { once: true });
+    $(".polaroid-upload label span", node).textContent = "Ganti media";
+    const readyEvent = isVideo ? "loadeddata" : "load";
+    previewMedia.addEventListener(readyEvent, () => URL.revokeObjectURL(previewUrl), { once: true });
+    previewMedia.addEventListener("error", () => URL.revokeObjectURL(previewUrl), { once: true });
+    if (isVideo) video.play().catch(() => {});
     badge.hidden = false;
-    badge.textContent = "Membaca foto...";
+    badge.textContent = isVideo ? "Membaca video..." : "Membaca foto...";
     errorBox.hidden = true;
     errorBox.textContent = "";
     setError("gallery", "");
-    setSaveState("saving", "Mengunggah foto...");
+    setSaveState("saving", "Mengunggah media...");
     try {
-      const optimized = await compressPhoto(file);
+      const normalizedVideo = isVideo && !["video/mp4", "video/webm"].includes(file.type)
+        ? new File([file], file.name, { type: extension === "webm" ? "video/webm" : "video/mp4" })
+        : file;
+      const optimized = isVideo ? normalizedVideo : await compressPhoto(file);
       badge.textContent = "Mengunggah...";
-      const result = await api.upload(optimized, "photo");
-      item.imageUrl = result.url;
+      const result = await api.upload(optimized, isVideo ? "video" : "photo");
+      item.mediaType = isVideo ? "video" : "image";
+      item.mediaUrl = result.url;
+      item.imageUrl = isVideo ? "" : result.url;
       renderGallery();
       scheduleSave();
     } catch (error) {
-      const message = error.message || "Foto belum berhasil diunggah.";
-      console.error("Photo upload failed", { message, status: error.status, response: error.payload });
+      const message = error.message || "Media belum berhasil diunggah.";
+      console.error("Gallery media upload failed", { message, status: error.status, response: error.payload });
       errorBox.textContent = `Upload gagal: ${message}`;
       errorBox.hidden = false;
       setError("gallery", message);
-      setSaveState("error", "Foto belum terunggah");
+      setSaveState("error", "Media belum terunggah");
     } finally {
       badge.hidden = true;
     }
@@ -670,6 +701,67 @@
       : `${location.origin}/gift/${encodeURIComponent(projectId)}`;
   }
 
+  function drawHeartQr(model, palette) {
+    const size = 720;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    canvas.className = "heart-qr-canvas";
+    const context = canvas.getContext("2d");
+    context.fillStyle = palette.paper;
+    context.fillRect(0, 0, size, size);
+
+    const moduleCount = model.getModuleCount();
+    const moduleSize = Math.max(6, Math.floor(390 / (moduleCount + 8)));
+    const qrSize = (moduleCount + 8) * moduleSize;
+    const quietX = Math.round((size - qrSize) / 2);
+    const quietY = 190;
+
+    const heart = new Path2D();
+    heart.moveTo(360, 682);
+    heart.bezierCurveTo(300, 622, 78, 474, 72, 252);
+    heart.bezierCurveTo(68, 108, 178, 45, 274, 82);
+    heart.bezierCurveTo(326, 102, 351, 142, 360, 174);
+    heart.bezierCurveTo(369, 142, 394, 102, 446, 82);
+    heart.bezierCurveTo(542, 45, 652, 108, 648, 252);
+    heart.bezierCurveTo(642, 474, 420, 622, 360, 682);
+    heart.closePath();
+
+    for (let y = 48; y <= 688; y += 11) {
+      for (let x = 48; x <= 672; x += 11) {
+        const insideQuietZone = x >= quietX - 8 && x <= quietX + qrSize + 8 && y >= quietY - 8 && y <= quietY + qrSize + 8;
+        if (!insideQuietZone && context.isPointInPath(heart, x, y)) {
+          context.beginPath();
+          context.fillStyle = Math.round((x + y) / 11) % 5 === 0 ? palette.accent : palette.ink;
+          context.arc(x, y, 2.5, 0, Math.PI * 2);
+          context.fill();
+        }
+      }
+    }
+
+    context.fillStyle = palette.paper;
+    context.fillRect(quietX, quietY, qrSize, qrSize);
+    const dataX = quietX + 4 * moduleSize;
+    const dataY = quietY + 4 * moduleSize;
+    context.fillStyle = palette.ink;
+    for (let row = 0; row < moduleCount; row += 1) {
+      for (let column = 0; column < moduleCount; column += 1) {
+        if (!model.isDark(row, column)) continue;
+        const x = dataX + column * moduleSize;
+        const y = dataY + row * moduleSize;
+        const finder = (row < 7 && column < 7) || (row < 7 && column >= moduleCount - 7) || (row >= moduleCount - 7 && column < 7);
+        if (finder) {
+          context.fillRect(x, y, moduleSize + .25, moduleSize + .25);
+        } else {
+          context.beginPath();
+          context.arc(x + moduleSize / 2, y + moduleSize / 2, moduleSize * .43, 0, Math.PI * 2);
+          context.fill();
+        }
+      }
+    }
+    return canvas;
+  }
+
   function renderQr(url) {
     const target = $("#qr-code");
     target.replaceChildren();
@@ -678,14 +770,24 @@
       target.textContent = "QR generator belum termuat. Refresh halaman untuk mencoba lagi.";
       return;
     }
-    qrInstance = new window.QRCode(target, {
+    const probe = document.createElement("div");
+    probe.hidden = true;
+    target.appendChild(probe);
+    qrInstance = new window.QRCode(probe, {
       text: url,
       width: 360,
       height: 360,
-      colorDark: "#171717",
-      colorLight: "#ffffff",
+      colorDark: QR_PALETTES[qrPaletteKey].ink,
+      colorLight: QR_PALETTES[qrPaletteKey].paper,
       correctLevel: window.QRCode.CorrectLevel.H
     });
+    const model = qrInstance._oQRCode;
+    if (model?.getModuleCount && model?.isDark) {
+      const canvas = drawHeartQr(model, QR_PALETTES[qrPaletteKey]);
+      target.replaceChildren(canvas);
+    } else {
+      probe.hidden = false;
+    }
   }
 
   function updatePublishedResult(explicitUrl) {
@@ -788,7 +890,7 @@
     $$("#step-list button").forEach(button => button.addEventListener("click", () => goToStep(Number(button.closest("li").dataset.stepTarget), { skipValidation: true })));
     $("#add-photo").addEventListener("click", () => {
       if (draft.gallery.length >= Project.MAX_GALLERY_ITEMS) return;
-      draft.gallery.push({ id: Project.makeId("photo"), imageUrl: "", title: "", story: "" });
+      draft.gallery.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", imageUrl: "", title: "", story: "" });
       renderGallery();
       scheduleSave();
     });
@@ -841,6 +943,11 @@
       $("#copy-gift-url").textContent = "Copied";
       window.setTimeout(() => { $("#copy-gift-url").textContent = "Copy"; }, 1200);
     });
+    $$('[data-qr-palette]').forEach(button => button.addEventListener("click", () => {
+      qrPaletteKey = button.dataset.qrPalette;
+      $$('[data-qr-palette]').forEach(option => option.classList.toggle("is-active", option === button));
+      if (draft.status === "published") renderQr($("#gift-url").value || giftUrl());
+    }));
     $("#download-qr").addEventListener("click", downloadQr);
     $("#studio-retry").addEventListener("click", () => location.reload());
   }

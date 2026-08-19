@@ -292,19 +292,25 @@ async function handleUpload(request, env) {
     if (file.size > 8 * 1024 * 1024) throw new HttpError(413, "Ukuran foto maksimal 8 MB.");
     directory = "photos";
     extension = allowed.get(file.type);
+  } else if (kind === "video") {
+    const allowed = new Map([["video/mp4", "mp4"], ["video/webm", "webm"]]);
+    if (!allowed.has(file.type)) throw new HttpError(415, "Video harus berformat MP4 atau WEBM.");
+    if (file.size > 20 * 1024 * 1024) throw new HttpError(413, "Ukuran video maksimal 20 MB.");
+    directory = "videos";
+    extension = allowed.get(file.type);
   } else if (kind === "audio") {
     if (file.type !== "audio/mpeg" && !file.name.toLowerCase().endsWith(".mp3")) throw new HttpError(415, "Audio harus berformat MP3.");
     if (file.size > 25 * 1024 * 1024) throw new HttpError(413, "Ukuran MP3 maksimal 25 MB.");
     directory = "audio";
     extension = "mp3";
   } else {
-    throw new HttpError(400, "Jenis upload harus photo atau audio.");
+    throw new HttpError(400, "Jenis upload harus photo, video, atau audio.");
   }
 
   const key = `snoopy/${projectId}/${directory}/${crypto.randomUUID()}-${safeFileName(file.name.replace(/\.[^.]+$/, ""))}.${extension}`;
   try {
     await env.MEDIA_BUCKET.put(key, await file.arrayBuffer(), {
-      httpMetadata: { contentType: file.type || (kind === "audio" ? "audio/mpeg" : `image/${extension}`) },
+      httpMetadata: { contentType: file.type || (kind === "audio" ? "audio/mpeg" : `${kind === "video" ? "video" : "image"}/${extension}`) },
       customMetadata: { projectId, kind, uploadedAt: new Date().toISOString() }
     });
   } catch (error) {
@@ -370,7 +376,7 @@ async function adminProjectSummary(env, record) {
     birthdayDate: record.identity?.birthdayDate || "",
     status: record.status || "draft",
     source: record.source || "manual",
-    galleryCount: Array.isArray(record.gallery) ? record.gallery.filter(item => item?.imageUrl).length : 0,
+    galleryCount: Array.isArray(record.gallery) ? record.gallery.filter(item => item?.mediaUrl || item?.imageUrl).length : 0,
     wishEnabled: record.settings?.wishEnabled !== false,
     createdAt: record.createdAt || "",
     updatedAt: record.updatedAt || "",

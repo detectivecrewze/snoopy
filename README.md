@@ -48,6 +48,8 @@ Customer content menggunakan schema version 2 dengan bagian `identity`, `warmWis
 
 GIF dan visual Snoopy adalah aset tema statis. Data penerima, pengirim, tanggal, ucapan, galeri, lagu, dan surat tidak disimpan di HTML gift atau JavaScript production.
 
+Galeri menerima JPG, PNG, dan WEBP maksimal 8 MB sebelum kompresi, serta MP4 atau WEBM maksimal 20 MB. Video disimpan di R2 dan tampil autoplay, loop, muted, serta playsinline. Generator QR menyediakan empat palet dan mempertahankan QR standar di tengah pola hati dekoratif agar tetap mudah dipindai.
+
 ## Music catalog
 
 Katalog berada di `assets/data/music.json`. Format yang didukung:

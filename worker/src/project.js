@@ -28,7 +28,7 @@ export function emptyProject(projectId) {
       subtitle: "Empat kejutan kecil yang dibuat khusus untukmu."
     },
     warmWish: { message: "", signature: "" },
-    gallery: [{ id: crypto.randomUUID(), imageUrl: "", title: "", story: "" }],
+    gallery: [{ id: crypto.randomUUID(), mediaType: "image", mediaUrl: "", imageUrl: "", title: "", story: "" }],
     music: { tracks: [], sourceType: "catalog", catalogId: "", audioUrl: "", coverUrl: "", title: "", artist: "" },
     letter: { greeting: "", paragraphs: [], signoff: "" },
     settings: { wishEnabled: true },
@@ -47,12 +47,18 @@ export function normalizeProject(input, projectId, existing = null) {
   const letter = source.letter && typeof source.letter === "object" ? source.letter : {};
   const settings = source.settings && typeof source.settings === "object" ? source.settings : {};
   const gallerySource = Array.isArray(source.gallery) ? source.gallery.slice(0, MAX_GALLERY_ITEMS) : [];
-  const gallery = gallerySource.map((item, index) => ({
-    id: cleanText(item?.id, `photo-${index + 1}`, 100),
-    imageUrl: cleanMediaUrl(item?.imageUrl),
-    title: cleanText(item?.title, "", 100),
-    story: cleanText(item?.story, "", 350)
-  }));
+  const gallery = gallerySource.map((item, index) => {
+    const mediaType = item?.mediaType === "video" ? "video" : "image";
+    const mediaUrl = cleanMediaUrl(item?.mediaUrl || item?.videoUrl || item?.imageUrl);
+    return {
+      id: cleanText(item?.id, `media-${index + 1}`, 100),
+      mediaType,
+      mediaUrl,
+      imageUrl: mediaType === "image" ? mediaUrl : "",
+      title: cleanText(item?.title, "", 100),
+      story: cleanText(item?.story, "", 350)
+    };
+  });
   const legacyTrack = music.audioUrl || music.title ? [music] : [];
   const musicSource = Array.isArray(music.tracks) ? music.tracks : legacyTrack;
   const tracks = musicSource.slice(0, MAX_MUSIC_TRACKS).map((track, index) => ({
@@ -106,7 +112,7 @@ export function validatePublishedProject(project) {
   if (project.identity.sender.length < 2) errors.sender = "Nama pengirim wajib diisi.";
   if (!project.identity.birthdayDate) errors.birthdayDate = "Tanggal ulang tahun wajib diisi.";
   if (project.warmWish.message.length < 3) errors.warmWish = "Warm Wishes wajib diisi.";
-  if (!project.gallery.length || !project.gallery[0].imageUrl) errors.gallery = "Tambahkan setidaknya satu foto.";
+  if (!project.gallery.length || !project.gallery[0].mediaUrl) errors.gallery = "Tambahkan setidaknya satu foto atau video.";
   if (!project.music.tracks.length) errors.music = "Pilih atau unggah setidaknya satu lagu.";
   if (project.music.tracks.some(track => !track.audioUrl || !track.title)) errors.musicTitle = "Setiap lagu wajib memiliki file dan judul.";
   if (!project.letter.greeting) errors.greeting = "Greeting surat wajib diisi.";

@@ -87,7 +87,7 @@ Target akhirnya adalah project baru dapat dibuat otomatis sesudah pembayaran di 
 - Mobile-first.
 - Tidak menggunakan framework atau build step.
 - Google Fonts: Caveat, DM Sans, dan Fredoka.
-- QR dibuat client-side dengan `qrcodejs` dari cdnjs.
+- QR dibuat client-side dengan `qrcodejs`, error correction tinggi, pola hati dekoratif, dan empat pilihan palet warna.
 - Runtime API URL dibaca dari `window.SNOOPY_RUNTIME.apiBaseUrl`.
 
 ### Backend
@@ -271,7 +271,9 @@ Schema saat ini adalah `schemaVersion: 2`. Payload schema v1 dengan satu lagu di
   },
   "gallery": [
     {
-      "id": "photo-id",
+      "id": "media-id",
+      "mediaType": "image",
+      "mediaUrl": "https://media.example/photo.webp",
       "imageUrl": "https://media.example/photo.webp",
       "title": "Judul foto",
       "story": "Cerita kecil"
@@ -307,7 +309,7 @@ Schema saat ini adalah `schemaVersion: 2`. Payload schema v1 dengan satu lagu di
 ### Batas validasi server
 
 - Project ID: lowercase alphanumeric dan dash, 3–64 karakter.
-- Maksimal galeri: 6 foto.
+- Maksimal galeri: 6 media berupa foto atau video.
 - Maksimal playlist: 3 lagu.
 - Nama penerima/pengirim: maksimal 80 karakter.
 - Subtitle: maksimal 120 karakter.
@@ -327,8 +329,8 @@ Project hanya dapat dipublish jika:
 
 - Penerima, pengirim, dan tanggal ulang tahun terisi.
 - Warm Wishes minimal 3 karakter.
-- Foto pertama memiliki `imageUrl`.
-- Musik memiliki `audioUrl` dan title.
+- Media pertama memiliki `mediaUrl`.
+- Musik memiliki 1–3 item di `music.tracks[]`; setiap item memiliki `audioUrl` dan title.
 - Surat memiliki greeting, minimal satu paragraf, dan signoff.
 
 ---
@@ -343,7 +345,7 @@ Base URL berasal dari deployment Worker dan dikonfigurasi ke frontend melalui `r
 | GET | `/api/gift/:id` | Tidak | Mengambil gift published yang sudah disanitasi. |
 | GET | `/api/studio/:id` | Magic token | Mengambil project Studio. |
 | PUT | `/api/studio/:id` | Magic token | Autosave draft atau publish. |
-| POST | `/api/upload` | Magic token | Upload foto/MP3 ke R2. |
+| POST | `/api/upload` | Magic token | Upload foto, video, atau MP3 ke R2. |
 | POST | `/api/wishes` | Tidak | Menyimpan wish untuk project published. |
 | GET | `/api/wishes/:id` | Magic token/admin | Membaca wish terbaru. |
 | GET | `/api/admin/projects` | Admin secret | List, stats, search, dan filter project. |
@@ -357,13 +359,14 @@ Base URL berasal dari deployment Worker dan dikonfigurasi ke frontend melalui `r
 `POST /api/upload` menggunakan `multipart/form-data`:
 
 - `projectId`.
-- `kind`: `photo` atau `audio`.
+- `kind`: `photo`, `video`, atau `audio`.
 - `file`.
 
 Batas file:
 
 - Foto JPG/PNG/WEBP maksimal 8 MB sebelum kompresi.
 - Browser mengubah foto menjadi WEBP, sisi terpanjang maksimal 1.600 px, quality 0.86.
+- Video MP4/WEBM maksimal 20 MB dan ditampilkan autoplay tanpa suara.
 - MP3 maksimal 25 MB.
 
 ### Admin project creation
@@ -414,6 +417,7 @@ Rate limit wish saat ini adalah maksimum 20 request per kombinasi project dan IP
 
 ```text
 snoopy/{projectId}/photos/{uuid}-{safeFilename}.webp
+snoopy/{projectId}/videos/{uuid}-{safeFilename}.mp4
 snoopy/{projectId}/audio/{uuid}-{safeFilename}.mp3
 ```
 
@@ -580,8 +584,8 @@ Perintah ini menjalankan syntax check pada frontend, Studio, admin, shared files
 Hasil terakhir pada 20 Agustus 2026:
 
 ```text
-tests: 15
-pass: 15
+tests: 16
+pass: 16
 fail: 0
 ```
 
@@ -589,6 +593,8 @@ fail: 0
 
 - Studio memiliki tujuh langkah dan memakai runtime config dinamis.
 - Katalog musik membaca `audioUrl`/`coverUrl`, mendukung pencarian, preview, seek, playlist maksimal tiga lagu, migrasi format lama, dan fallback cover.
+- Galeri mendukung foto serta video MP4/WEBM 20 MB dengan autoplay, loop, muted, dan playsinline.
+- QR berbentuk hati menggunakan quiet zone aman dan empat pilihan palet warna.
 - Gift production tidak memuat konfigurasi customer lama.
 - Admin memiliki login, generator, filter, dan konfirmasi destructive delete.
 - Runtime config tidak mengandung secret.

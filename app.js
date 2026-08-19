@@ -63,11 +63,11 @@
     $("#wish-signature").textContent = config.warmWish.signature || identity.sender;
     $("#letter-date").textContent = Project.formatBirthdayDate(identity.birthdayDate);
     $("#letter-heading").textContent = config.letter.greeting || `Dear ${identity.recipient},`;
-    const singlePhoto = config.gallery.length === 1;
-    $("#memory-card-title").textContent = singlePhoto ? "The Birthday Star" : "Our Memories";
-    $("#memory-card-description").textContent = singlePhoto ? "the face behind this special day" : "tiny moments, big feelings";
-    $("#memories-title").textContent = singlePhoto ? "The Birthday Star" : "Our Memories";
-    $("#memories-subtitle").textContent = singlePhoto ? "A little portrait for the person behind this special day." : "A few little moments worth keeping.";
+    const singleMedia = config.gallery.length === 1;
+    $("#memory-card-title").textContent = singleMedia ? "A Special Moment" : "Our Memories";
+    $("#memory-card-description").textContent = singleMedia ? "one little moment worth keeping" : "tiny moments, big feelings";
+    $("#memories-title").textContent = singleMedia ? "A Special Moment" : "Our Memories";
+    $("#memories-subtitle").textContent = singleMedia ? "One favorite moment, saved here just for you." : "A few little moments worth keeping.";
     document.title = `A Birthday Surprise for ${identity.recipient || "You"}`;
   }
 
@@ -104,15 +104,32 @@
     memoryIndex = (index + memories.length) % memories.length;
     const memory = memories[memoryIndex];
     const image = $("#memory-image");
+    const video = $("#memory-video");
     const placeholder = $("#photo-placeholder");
-    $("#memory-title").textContent = memory.title || `Foto ${memoryIndex + 1}`;
+    $("#memory-title").textContent = memory.title || `Media ${memoryIndex + 1}`;
     $("#memory-caption").textContent = memory.story || "Satu momen kecil yang layak disimpan.";
-    placeholder.innerHTML = `FOTO KAMU<br><small>${String(memoryIndex + 1).padStart(2, "0")}</small>`;
+    placeholder.innerHTML = `MEDIA KAMU<br><small>${String(memoryIndex + 1).padStart(2, "0")}</small>`;
     image.hidden = true;
+    video.hidden = true;
+    image.removeAttribute("src");
+    video.pause();
+    video.removeAttribute("src");
     placeholder.hidden = false;
-    image.onload = () => { image.hidden = false; placeholder.hidden = true; };
-    image.onerror = () => { image.hidden = true; placeholder.hidden = false; };
-    image.src = memory.imageUrl || "";
+    const mediaUrl = memory.mediaUrl || memory.imageUrl || "";
+    if (memory.mediaType === "video") {
+      video.onloadeddata = () => {
+        video.hidden = false;
+        placeholder.hidden = true;
+        video.play().catch(() => {});
+      };
+      video.onerror = () => { video.hidden = true; placeholder.hidden = false; };
+      video.src = mediaUrl;
+      video.load();
+    } else {
+      image.onload = () => { image.hidden = false; placeholder.hidden = true; };
+      image.onerror = () => { image.hidden = true; placeholder.hidden = false; };
+      image.src = mediaUrl;
+    }
     $$("button", $("#memory-dots")).forEach((dot, dotIndex) => dot.classList.toggle("is-active", dotIndex === memoryIndex));
     $("#memory-card").animate?.(
       [{ opacity: .2, transform: "translateX(12px) rotate(1deg)" }, { opacity: 1, transform: "rotate(-.7deg)" }],
@@ -121,7 +138,7 @@
   }
 
   function setupMemories() {
-    memories = config.gallery.length ? config.gallery : [{ title: "Foto spesialmu", story: "", imageUrl: "" }];
+    memories = config.gallery.length ? config.gallery : [{ mediaType: "image", mediaUrl: "", title: "Media spesialmu", story: "" }];
     const memoryDots = $("#memory-dots");
     memoryDots.replaceChildren();
     $(".memory-stage").classList.toggle("is-single", memories.length <= 1);
@@ -131,7 +148,7 @@
     memories.forEach((_, index) => {
       const dot = document.createElement("button");
       dot.type = "button";
-      dot.setAttribute("aria-label", `Tampilkan foto ${index + 1}`);
+      dot.setAttribute("aria-label", `Tampilkan media ${index + 1}`);
       dot.addEventListener("click", () => renderMemory(index));
       memoryDots.appendChild(dot);
     });

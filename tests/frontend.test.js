@@ -42,10 +42,15 @@ test("music catalog supports covers, selection, and audio preview", () => {
   assert.match(studio, /id="studio-seek"/);
   assert.match(studio, /id="studio-playlist"/);
   assert.equal((studio.match(/data-warm-preset=/g) || []).length, 3);
+  assert.equal((studio.match(/data-qr-palette=/g) || []).length, 4);
+  assert.match(studio, /video\/mp4/);
+  assert.match(studio, /muted autoplay loop playsinline/);
   assert.match(studioApp, /track\.audioUrl \|\| track\.url/);
   assert.match(studioApp, /previewCatalogTrack/);
   assert.match(studioApp, /selectCatalogTrack/);
   assert.match(studioApp, /MAX_MUSIC_TRACKS/);
+  assert.match(studioApp, /drawHeartQr/);
+  assert.match(studioApp, /20 \* 1024 \* 1024/);
   assert.match(sharedProject, /coverUrl/);
   assert.match(workerProject, /coverUrl/);
 });
