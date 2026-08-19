@@ -154,6 +154,27 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
   assert.equal(publish.response.status, 200);
   assert.equal(publish.payload.project.status, "published");
 
+  const incompleteEdit = {
+    ...publish.payload.project,
+    gallery: [...publish.payload.project.gallery, { id: "media-empty", mediaType: "image", mediaUrl: "", title: "", story: "" }],
+    letter: { ...publish.payload.project.letter, greeting: "" }
+  };
+  const autosave = await call(env, `/api/studio/${projectId}`, {
+    method: "PUT",
+    token: editToken,
+    body: { project: incompleteEdit, status: "draft" }
+  });
+  assert.equal(autosave.response.status, 200);
+  assert.equal(autosave.payload.project.status, "published");
+  assert.equal(autosave.payload.project.letter.greeting, "");
+
+  const publicDuringEdit = await call(env, `/api/gift/${projectId}`);
+  assert.equal(publicDuringEdit.response.status, 200);
+  assert.equal(publicDuringEdit.payload.project.letter.greeting, "Untuk kamu yang berulang tahun,");
+
+  const studioDuringEdit = await call(env, `/api/studio/${projectId}`, { token: editToken });
+  assert.equal(studioDuringEdit.payload.project.letter.greeting, "");
+
   const publicGift = await call(env, `/api/gift/${projectId}`);
   assert.equal(publicGift.response.status, 200);
   assert.equal(publicGift.payload.project.identity.recipient, "Penerima");
@@ -215,4 +236,29 @@ test("admin authentication and CORS reject unauthorized requests", async () => {
   const allowed = await call(env, "/api/health");
   assert.equal(allowed.response.status, 200);
   assert.equal(allowed.response.headers.get("Access-Control-Allow-Origin"), "https://gift.test");
+});
+
+test("configured preview origins and extension MIME fallbacks are supported", async () => {
+  const env = makeEnv();
+  env.ALLOWED_ORIGIN_SUFFIXES = ".vercel.app,.for-you-always.my.id";
+  const previewHealth = await call(env, "/api/health", { origin: "https://snoopy-gift-preview-123.vercel.app" });
+  assert.equal(previewHealth.response.status, 200);
+  assert.equal(previewHealth.response.headers.get("Access-Control-Allow-Origin"), "https://snoopy-gift-preview-123.vercel.app");
+
+  const created = await call(env, "/api/admin/projects", { method: "POST", token: env.ADMIN_SECRET, body: { idempotencyKey: "mime-fallback-001" } });
+  const token = tokenFromStudioUrl(created.payload.studioUrl);
+  const photoForm = new FormData();
+  photoForm.append("projectId", created.payload.projectId);
+  photoForm.append("kind", "photo");
+  photoForm.append("file", new File([new Uint8Array([1])], "camera.jpg", { type: "image/jpg" }));
+  const photo = await call(env, "/api/upload", { method: "POST", token, body: photoForm });
+  assert.equal(photo.response.status, 201);
+
+  const movForm = new FormData();
+  movForm.append("projectId", created.payload.projectId);
+  movForm.append("kind", "video");
+  movForm.append("file", new File([new Uint8Array([1])], "iphone.mov", { type: "application/octet-stream" }));
+  const mov = await call(env, "/api/upload", { method: "POST", token, body: movForm });
+  assert.equal(mov.response.status, 201);
+  assert.match(mov.payload.url, /\/videos\/.*\.mov$/);
 });

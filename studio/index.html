@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/studio/styles.css">
+  <link rel="stylesheet" href="/studio/styles.css?v=20260820-3">
 </head>
 <body>
   <div class="studio-grain" aria-hidden="true"></div>
@@ -258,7 +258,7 @@
       <div class="polaroid-upload">
         <img alt="Preview foto" hidden>
         <video muted autoplay loop playsinline hidden aria-label="Preview video"></video>
-        <label><input class="gallery-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden><span>Upload foto atau video</span><small>Foto 8 MB, video 20 MB</small></label>
+        <label><input class="gallery-file" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" hidden><span>Upload foto atau video</span><small>Foto 8 MB, video 20 MB</small></label>
         <i class="uploading-badge" hidden>Mengunggah...</i>
       </div>
       <div class="gallery-fields">
@@ -270,15 +270,15 @@
     </article>
   </template>
 
-  <script src="/shared/project.js"></script>
-  <script src="/runtime-config.js"></script>
+  <script src="/shared/project.js?v=20260820-3"></script>
+  <script src="/runtime-config.js?v=20260820-3"></script>
   <script>
     if (["localhost", "127.0.0.1", "::1"].includes(location.hostname)) {
-      document.write('<script src="/dev/mock-api.js"><\/script>');
+      document.write('<script src="/dev/mock-api.js?v=20260820-3"><\/script>');
     }
   </script>
-  <script src="/shared/api.js"></script>
+  <script src="/shared/api.js?v=20260820-3"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer"></script>
-  <script src="/studio/app.js"></script>
+  <script src="/studio/app.js?v=20260820-3"></script>
 </body>
 </html>

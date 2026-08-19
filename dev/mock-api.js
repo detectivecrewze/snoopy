@@ -3,6 +3,7 @@
 
   const fixtureUrl = "/fixtures/sample.json";
   const projectKey = id => `snoopy-studio:project:${id}`;
+  const studioDraftKey = id => `snoopy-studio:draft:${id}`;
   const wishesKey = id => `snoopy-studio:wishes:${id}`;
 
   function wait(value, delay = 120) {
@@ -41,17 +42,26 @@
     },
     async getStudio(id, token) {
       requireToken(token);
-      const project = root.GiftProject.normalizeProject(await getProject(id), id);
+      const published = await getProject(id);
+      const savedDraft = localStorage.getItem(studioDraftKey(id));
+      const project = root.GiftProject.normalizeProject(savedDraft ? JSON.parse(savedDraft) : published, id);
       return wait({ project, mock: true });
     },
     async saveStudio(id, token, input, status) {
       requireToken(token);
-      const project = root.GiftProject.normalizeProject({ ...input, status }, id);
+      const published = await getProject(id);
+      const studioStatus = status === "published" ? "published" : published.status === "published" ? "published" : "draft";
+      const project = root.GiftProject.normalizeProject({ ...input, status: studioStatus }, id);
       const now = new Date().toISOString();
       project.updatedAt = now;
       project.createdAt ||= now;
       if (status === "published") project.publishedAt ||= now;
-      localStorage.setItem(projectKey(id), JSON.stringify(project));
+      if (status === "published") {
+        localStorage.setItem(projectKey(id), JSON.stringify(project));
+        localStorage.removeItem(studioDraftKey(id));
+      } else {
+        localStorage.setItem(studioDraftKey(id), JSON.stringify(project));
+      }
       return wait({ project, giftUrl: `${location.origin}/gift/${id}`, mock: true });
     },
     async upload(id, token, file, kind) {

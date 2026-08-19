@@ -4,6 +4,7 @@ compatibility_date = "2024-01-01"
 
 [vars]
 ALLOWED_ORIGINS = "https://snoopy.for-you-always.my.id"
+ALLOWED_ORIGIN_SUFFIXES = ".vercel.app,.for-you-always.my.id"
 PUBLIC_GIFT_BASE_URL = "https://snoopy.for-you-always.my.id"
 PUBLIC_STUDIO_BASE_URL = "https://snoopy.for-you-always.my.id"
 MEDIA_BASE_URL = "https://cdn.for-you-always.my.id"

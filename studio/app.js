@@ -127,7 +127,11 @@
     readForm();
     setSaveState("saving", "Menyimpan perubahan...");
     window.clearTimeout(saveTimer);
-    saveTimer = window.setTimeout(() => saveDraft(draft.status === "published" ? "published" : "draft"), 750);
+    // Autosave must never run the full publish validation. A published gift can
+    // temporarily be incomplete while its owner replaces media or edits a field.
+    saveTimer = window.setTimeout(() => {
+      saveDraft("draft").catch(() => {});
+    }, 750);
     schedulePreview();
   }
 
@@ -137,7 +141,9 @@
     try {
       const payload = await api.saveStudio(draft, status);
       draft = Project.normalizeProject(payload.project || draft, projectId);
-      setSaveState("saved", status === "published" ? "Kado sudah dipublikasikan" : "Draft tersimpan");
+      setSaveState("saved", status === "published"
+        ? "Kado sudah dipublikasikan"
+        : draft.status === "published" ? "Perubahan tersimpan" : "Draft tersimpan");
       updatePublishedResult(payload.giftUrl);
       return payload;
     } catch (error) {
@@ -292,7 +298,16 @@
   async function uploadGalleryMedia(file, item, node) {
     if (!file) return;
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
-    const isVideo = ["video/mp4", "video/webm"].includes(file.type) || ["mp4", "webm"].includes(extension);
+    const imageExtensions = ["jpg", "jpeg", "png", "webp"];
+    const videoExtensions = ["mp4", "webm", "mov"];
+    const isVideo = ["video/mp4", "video/webm", "video/quicktime"].includes(file.type.toLowerCase()) || videoExtensions.includes(extension);
+    const isImage = ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type.toLowerCase()) || imageExtensions.includes(extension);
+    if (!isVideo && !isImage) {
+      const errorBox = $(".photo-upload-error", node);
+      errorBox.textContent = "Upload gagal: gunakan foto JPG, PNG, WEBP atau video MP4, WEBM, MOV.";
+      errorBox.hidden = false;
+      return;
+    }
     if (isVideo && file.size > 20 * 1024 * 1024) {
       const errorBox = $(".photo-upload-error", node);
       errorBox.textContent = "Upload gagal: ukuran video maksimal 20 MB.";
@@ -324,8 +339,9 @@
     setError("gallery", "");
     setSaveState("saving", "Mengunggah media...");
     try {
-      const normalizedVideo = isVideo && !["video/mp4", "video/webm"].includes(file.type)
-        ? new File([file], file.name, { type: extension === "webm" ? "video/webm" : "video/mp4" })
+      const expectedVideoType = extension === "webm" ? "video/webm" : extension === "mov" ? "video/quicktime" : "video/mp4";
+      const normalizedVideo = isVideo && file.type !== expectedVideoType
+        ? new File([file], file.name, { type: expectedVideoType })
         : file;
       const optimized = isVideo ? normalizedVideo : await compressPhoto(file);
       badge.textContent = "Mengunggah...";

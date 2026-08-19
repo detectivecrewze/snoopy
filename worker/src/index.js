@@ -9,6 +9,7 @@ import {
 
 const encoder = new TextEncoder();
 const PROJECT_PREFIX = "project:";
+const STUDIO_DRAFT_PREFIX = "studio-draft:";
 const WISH_PREFIX = "wish:";
 
 class HttpError extends Error {
@@ -26,12 +27,22 @@ function configuredOrigins(env) {
     .filter(Boolean);
 }
 
+function configuredOriginSuffixes(env) {
+  return String(env.ALLOWED_ORIGIN_SUFFIXES || "")
+    .split(",")
+    .map(value => value.trim().toLowerCase())
+    .filter(value => /^\.[a-z0-9.-]+$/.test(value));
+}
+
 function isAllowedOrigin(origin, env) {
   if (!origin) return true;
   if (configuredOrigins(env).includes(origin)) return true;
   try {
     const url = new URL(origin);
-    return url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname);
+    if (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)) return true;
+    if (url.protocol !== "https:") return false;
+    const hostname = url.hostname.toLowerCase();
+    return configuredOriginSuffixes(env).some(suffix => hostname.endsWith(suffix));
   } catch {
     return false;
   }
@@ -233,8 +244,12 @@ async function handleGetStudio(request, env, projectId) {
   const record = await requireProject(env, projectId);
   if (record.status === "archived") throw new HttpError(410, "Project sedang diarsipkan.");
   await authorizeProject(request, env, record);
+  const savedDraft = await env.GIFT_KV.get(`${STUDIO_DRAFT_PREFIX}${projectId}`, "json");
+  const studioProject = savedDraft
+    ? normalizeProject({ ...savedDraft, status: record.status }, projectId, record)
+    : record;
   return json(request, env, {
-    project: publicProject(record),
+    project: publicProject(studioProject),
     giftUrl: absoluteUrl(env.PUBLIC_GIFT_BASE_URL, `/gift/${projectId}`)
   }, 200, { "Cache-Control": "no-store" });
 }
@@ -245,7 +260,8 @@ async function handleSaveStudio(request, env, projectId) {
   await authorizeProject(request, env, existing);
   const body = await readJson(request);
   const requestedStatus = body.status === "published" ? "published" : "draft";
-  const normalized = normalizeProject({ ...(body.project || {}), status: requestedStatus }, projectId, existing);
+  const studioStatus = requestedStatus === "published" ? "published" : existing.status === "published" ? "published" : "draft";
+  const normalized = normalizeProject({ ...(body.project || {}), status: studioStatus }, projectId, existing);
   if (requestedStatus === "published") {
     const errors = validatePublishedProject(normalized);
     if (Object.keys(errors).length) throw new HttpError(422, "Project belum lengkap untuk dipublikasikan.", errors);
@@ -254,15 +270,23 @@ async function handleSaveStudio(request, env, projectId) {
   const now = new Date().toISOString();
   const record = {
     ...normalized,
-    status: requestedStatus,
+    status: studioStatus,
     createdAt: existing.createdAt || now,
     updatedAt: now,
-    publishedAt: requestedStatus === "published" ? existing.publishedAt || now : null,
+    publishedAt: existing.publishedAt || (requestedStatus === "published" ? now : null),
     auth: existing.auth,
     source: existing.source,
     idempotencyKeyHash: existing.idempotencyKeyHash
   };
-  await env.GIFT_KV.put(`${PROJECT_PREFIX}${projectId}`, JSON.stringify(record));
+  if (requestedStatus === "published") {
+    await env.GIFT_KV.put(`${PROJECT_PREFIX}${projectId}`, JSON.stringify(record));
+    await env.GIFT_KV.delete(`${STUDIO_DRAFT_PREFIX}${projectId}`);
+  } else {
+    // Keep the last published record untouched while the owner is editing.
+    // This also lets incomplete intermediate states autosave without a 422.
+    const { auth, source, idempotencyKeyHash, ...safeDraft } = record;
+    await env.GIFT_KV.put(`${STUDIO_DRAFT_PREFIX}${projectId}`, JSON.stringify(safeDraft));
+  }
   return json(request, env, {
     project: publicProject(record),
     giftUrl: absoluteUrl(env.PUBLIC_GIFT_BASE_URL, `/gift/${projectId}`)
@@ -286,23 +310,32 @@ async function handleUpload(request, env) {
 
   let directory;
   let extension;
+  let contentType;
+  const originalExtension = String(file.name || "").split(".").pop()?.toLowerCase() || "";
   if (kind === "photo") {
-    const allowed = new Map([["image/jpeg", "jpg"], ["image/png", "png"], ["image/webp", "webp"]]);
-    if (!allowed.has(file.type)) throw new HttpError(415, "Foto harus berformat JPG, PNG, atau WEBP.");
+    const mimeExtensions = new Map([["image/jpeg", "jpg"], ["image/jpg", "jpg"], ["image/png", "png"], ["image/webp", "webp"]]);
+    const extensionTypes = new Map([["jpg", "image/jpeg"], ["jpeg", "image/jpeg"], ["png", "image/png"], ["webp", "image/webp"]]);
+    const detectedExtension = mimeExtensions.get(file.type.toLowerCase()) || (extensionTypes.has(originalExtension) ? originalExtension : "");
+    if (!detectedExtension) throw new HttpError(415, "Foto harus berformat JPG, PNG, atau WEBP.");
     if (file.size > 8 * 1024 * 1024) throw new HttpError(413, "Ukuran foto maksimal 8 MB.");
     directory = "photos";
-    extension = allowed.get(file.type);
+    extension = detectedExtension === "jpeg" ? "jpg" : detectedExtension;
+    contentType = extensionTypes.get(detectedExtension) || "image/jpeg";
   } else if (kind === "video") {
-    const allowed = new Map([["video/mp4", "mp4"], ["video/webm", "webm"]]);
-    if (!allowed.has(file.type)) throw new HttpError(415, "Video harus berformat MP4 atau WEBM.");
+    const mimeExtensions = new Map([["video/mp4", "mp4"], ["video/webm", "webm"], ["video/quicktime", "mov"]]);
+    const extensionTypes = new Map([["mp4", "video/mp4"], ["webm", "video/webm"], ["mov", "video/quicktime"]]);
+    const detectedExtension = mimeExtensions.get(file.type.toLowerCase()) || (extensionTypes.has(originalExtension) ? originalExtension : "");
+    if (!detectedExtension) throw new HttpError(415, "Video harus berformat MP4, WEBM, atau MOV.");
     if (file.size > 20 * 1024 * 1024) throw new HttpError(413, "Ukuran video maksimal 20 MB.");
     directory = "videos";
-    extension = allowed.get(file.type);
+    extension = detectedExtension;
+    contentType = extensionTypes.get(detectedExtension);
   } else if (kind === "audio") {
     if (file.type !== "audio/mpeg" && !file.name.toLowerCase().endsWith(".mp3")) throw new HttpError(415, "Audio harus berformat MP3.");
     if (file.size > 25 * 1024 * 1024) throw new HttpError(413, "Ukuran MP3 maksimal 25 MB.");
     directory = "audio";
     extension = "mp3";
+    contentType = "audio/mpeg";
   } else {
     throw new HttpError(400, "Jenis upload harus photo, video, atau audio.");
   }
@@ -310,7 +343,7 @@ async function handleUpload(request, env) {
   const key = `snoopy/${projectId}/${directory}/${crypto.randomUUID()}-${safeFileName(file.name.replace(/\.[^.]+$/, ""))}.${extension}`;
   try {
     await env.MEDIA_BUCKET.put(key, await file.arrayBuffer(), {
-      httpMetadata: { contentType: file.type || (kind === "audio" ? "audio/mpeg" : `${kind === "video" ? "video" : "image"}/${extension}`) },
+      httpMetadata: { contentType },
       customMetadata: { projectId, kind, uploadedAt: new Date().toISOString() }
     });
   } catch (error) {
@@ -475,6 +508,7 @@ async function handleAdminDeleteProject(request, env, projectId) {
     await env.GIFT_KV.delete(`idempotency:${existing.source}:${existing.idempotencyKeyHash}`);
   }
   await env.GIFT_KV.delete(`${PROJECT_PREFIX}${projectId}`);
+  await env.GIFT_KV.delete(`${STUDIO_DRAFT_PREFIX}${projectId}`);
   return json(request, env, {
     deleted: true,
     projectId,
