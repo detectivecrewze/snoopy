@@ -1,0 +1,14 @@
+{
+  "name": "snoopy-birthday-gift",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dynamic Snoopy birthday gift and seven-step customer studio.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "check": "node --check app.js && node --check studio/app.js && node --check shared/project.js && node --check shared/api.js && node --check dev/mock-api.js && node --check server.js && node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

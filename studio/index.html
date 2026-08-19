@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8d44c">
+  <meta name="gift-api-base" content="">
+  <title>Snoopy Gift Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/studio/styles.css">
+</head>
+<body>
+  <div class="studio-grain" aria-hidden="true"></div>
+
+  <main class="studio-state" id="studio-state" aria-live="polite">
+    <div class="state-note">
+      <span class="state-sticker" id="state-sticker">STUDIO</span>
+      <h1 id="studio-state-title">Membuka meja kerja...</h1>
+      <p id="studio-state-message">Sebentar, kami sedang menyiapkan draft kadomu.</p>
+      <button class="comic-button comic-button--red" id="studio-retry" type="button" hidden>Coba lagi</button>
+    </div>
+  </main>
+
+  <div class="studio-shell" id="studio-shell" hidden>
+    <header class="studio-header">
+      <a class="brand" href="/" aria-label="For You Always">
+        <span>FOR YOU</span>
+        <strong>Gift Studio</strong>
+      </a>
+      <div class="save-state" id="save-state" data-state="saved">
+        <i aria-hidden="true"></i>
+        <span>Draft tersimpan</span>
+      </div>
+    </header>
+
+    <div class="studio-layout">
+      <aside class="wizard-rail" aria-label="Tahapan pembuatan kado">
+        <div class="rail-heading">
+          <p>PROJECT</p>
+          <strong id="project-label">birthday-gift</strong>
+        </div>
+        <ol id="step-list">
+          <li class="is-active" data-step-target="1"><button type="button"><span>01</span><b>Identitas</b><small>Siapa yang berulang tahun?</small></button></li>
+          <li data-step-target="2"><button type="button"><span>02</span><b>Warm Wishes</b><small>Ucapan singkatmu</small></button></li>
+          <li data-step-target="3"><button type="button"><span>03</span><b>Galeri Foto</b><small>Momen dalam polaroid</small></button></li>
+          <li data-step-target="4"><button type="button"><span>04</span><b>Musik</b><small>Soundtrack hari ini</small></button></li>
+          <li data-step-target="5"><button type="button"><span>05</span><b>Surat</b><small>Pesan paling personal</small></button></li>
+          <li data-step-target="6"><button type="button"><span>06</span><b>Wish Inbox</b><small>Harapan dari penerima</small></button></li>
+          <li data-step-target="7"><button type="button"><span>07</span><b>Preview</b><small>Periksa dan publish</small></button></li>
+        </ol>
+      </aside>
+
+      <section class="wizard-panel">
+        <div class="mobile-progress">
+          <span id="mobile-step-label">Langkah 1 dari 7</span>
+          <div><i id="mobile-progress-bar"></i></div>
+        </div>
+
+        <form id="studio-form" novalidate>
+          <section class="wizard-step is-active" data-step="1" aria-labelledby="step-1-title">
+            <div class="step-heading">
+              <p class="kicker">LANGKAH 01</p>
+              <h1 id="step-1-title">Mulai dari orang spesialnya</h1>
+              <p>Isi identitas dasar yang akan muncul di seluruh halaman kado.</p>
+            </div>
+            <div class="paper-form two-columns">
+              <label class="field">
+                <span>Nama penerima</span>
+                <input id="recipient" name="recipient" maxlength="80" autocomplete="off" placeholder="Nama lengkap penerima" required>
+                <small class="field-error" data-error-for="recipient"></small>
+              </label>
+              <label class="field">
+                <span>Nama pengirim</span>
+                <input id="sender" name="sender" maxlength="80" autocomplete="off" placeholder="Contoh: Rapi" required>
+                <small class="field-error" data-error-for="sender"></small>
+              </label>
+              <label class="field">
+                <span>Tanggal ulang tahun</span>
+                <input id="birthday-date-input" name="birthdayDate" type="date" required>
+                <small class="field-error" data-error-for="birthdayDate"></small>
+              </label>
+              <label class="field field--wide">
+                <span>Kalimat kecil di halaman utama</span>
+                <input id="subtitle" name="subtitle" maxlength="120" placeholder="Empat kejutan kecil yang dibuat khusus untukmu.">
+              </label>
+            </div>
+          </section>
+
+          <section class="wizard-step" data-step="2" aria-labelledby="step-2-title">
+            <div class="step-heading">
+              <p class="kicker">LANGKAH 02</p>
+              <h1 id="step-2-title">Beri satu pelukan lewat kata</h1>
+              <p>Pesan ini tampil sebagai kejutan pertama. Singkat, hangat, dan langsung terasa personal.</p>
+            </div>
+            <div class="paper-form">
+              <label class="field">
+                <span>Warm Wishes</span>
+                <textarea id="warm-message" maxlength="650" rows="8" placeholder="Tuliskan doa dan ucapan singkatmu..." required></textarea>
+                <small class="counter"><b id="warm-count">0</b>/650</small>
+                <small class="field-error" data-error-for="warmWish"></small>
+              </label>
+              <label class="field">
+                <span>Tanda tangan pendek</span>
+                <input id="warm-signature" maxlength="80" placeholder="Contoh: Rapi">
+              </label>
+            </div>
+          </section>
+
+          <section class="wizard-step" data-step="3" aria-labelledby="step-3-title">
+            <div class="step-heading step-heading--with-action">
+              <div>
+                <p class="kicker">LANGKAH 03</p>
+                <h1 id="step-3-title">Susun galeri polaroid</h1>
+                <p>Tambahkan 1 sampai 6 foto. Setiap foto punya judul dan cerita kecilnya sendiri.</p>
+              </div>
+              <button class="small-button" id="add-photo" type="button">Tambah foto</button>
+            </div>
+            <div class="gallery-editor" id="gallery-editor"></div>
+            <p class="section-error" data-error-for="gallery"></p>
+          </section>
+
+          <section class="wizard-step" data-step="4" aria-labelledby="step-4-title">
+            <div class="step-heading">
+              <p class="kicker">LANGKAH 04</p>
+              <h1 id="step-4-title">Pilih soundtrack-nya</h1>
+              <p>Gunakan lagu dari katalog atau unggah MP3 milikmu sendiri.</p>
+            </div>
+            <div class="source-tabs" role="tablist" aria-label="Sumber musik">
+              <button class="is-active" id="catalog-tab" type="button" data-music-source="catalog">Pilih dari katalog</button>
+              <button id="upload-tab" type="button" data-music-source="upload">Upload MP3</button>
+            </div>
+            <div class="paper-form music-source" data-source-panel="catalog">
+              <label class="field">
+                <span>Katalog musik</span>
+                <select id="music-catalog"><option value="">Pilih satu lagu...</option></select>
+              </label>
+              <p class="catalog-note" id="catalog-note">Katalog dibaca dari <code>assets/data/music.json</code>.</p>
+            </div>
+            <div class="paper-form music-source" data-source-panel="upload" hidden>
+              <label class="upload-drop" for="music-file">
+                <input id="music-file" type="file" accept="audio/mpeg,.mp3" hidden>
+                <b>Pilih file MP3</b>
+                <span>Maksimal 25 MB</span>
+              </label>
+              <p class="upload-status" id="music-upload-status"></p>
+            </div>
+            <div class="paper-form two-columns compact-form">
+              <label class="field"><span>Judul lagu</span><input id="music-title" maxlength="100" placeholder="Judul lagu"><small class="field-error" data-error-for="musicTitle"></small></label>
+              <label class="field"><span>Artis</span><input id="music-artist" maxlength="100" placeholder="Nama artis"></label>
+              <div class="mini-player field--wide">
+                <button id="studio-audio-toggle" type="button" aria-label="Putar preview">▶</button>
+                <div><strong id="studio-track-title">Belum ada lagu</strong><small id="studio-track-artist">Pilih lagu untuk mendengarkan preview</small></div>
+                <audio id="studio-audio" preload="metadata"></audio>
+              </div>
+              <p class="section-error field--wide" data-error-for="music"></p>
+            </div>
+          </section>
+
+          <section class="wizard-step" data-step="5" aria-labelledby="step-5-title">
+            <div class="step-heading">
+              <p class="kicker">LANGKAH 05</p>
+              <h1 id="step-5-title">Tulis surat paling personal</h1>
+              <p>Pisahkan setiap paragraf dengan satu baris kosong. Isi surat tidak akan diubah otomatis.</p>
+            </div>
+            <div class="letter-editor">
+              <label class="field"><span>Greeting</span><input id="letter-greeting" maxlength="120" placeholder="My dearest birthday star," required><small class="field-error" data-error-for="greeting"></small></label>
+              <label class="field"><span>Isi surat</span><textarea id="letter-body" rows="14" maxlength="8000" placeholder="Tulis paragraf pertama...&#10;&#10;Lanjutkan paragraf berikutnya..." required></textarea><small class="counter"><b id="letter-count">0</b>/8000</small><small class="field-error" data-error-for="letter"></small></label>
+              <label class="field"><span>Signoff</span><textarea id="letter-signoff" rows="3" maxlength="220" placeholder="With lots of love,&#10;Rapi" required></textarea><small class="field-error" data-error-for="signoff"></small></label>
+            </div>
+          </section>
+
+          <section class="wizard-step" data-step="6" aria-labelledby="step-6-title">
+            <div class="step-heading step-heading--with-action">
+              <div>
+                <p class="kicker">LANGKAH 06</p>
+                <h1 id="step-6-title">Wish Inbox</h1>
+                <p>Harapan yang dikirim penerima akan muncul di sini. Inbox tidak pernah ditampilkan di halaman gift publik.</p>
+              </div>
+              <button class="small-button" id="refresh-wishes" type="button">Refresh</button>
+            </div>
+            <label class="toggle-card">
+              <input id="wish-enabled" type="checkbox" checked>
+              <span><b>Aktifkan halaman Make a Wish</b><small>Penerima dapat mengirim harapan sebelum membuka kadonya.</small></span>
+            </label>
+            <div class="wish-inbox" id="wish-inbox">
+              <div class="empty-inbox" id="empty-inbox"><strong>Belum ada wish</strong><p>Nanti pesan pertama akan muncul seperti secarik catatan kecil di sini.</p></div>
+            </div>
+          </section>
+
+          <section class="wizard-step wizard-step--preview" data-step="7" aria-labelledby="step-7-title">
+            <div class="step-heading">
+              <p class="kicker">LANGKAH 07</p>
+              <h1 id="step-7-title">Periksa lalu kirim ke dunia</h1>
+              <p>Preview memakai renderer yang sama dengan halaman gift publik.</p>
+            </div>
+            <div class="preview-layout">
+              <div class="device-preview">
+                <div class="device-bar"><i></i><span>LIVE PREVIEW</span><button id="refresh-preview" type="button">Refresh</button></div>
+                <iframe id="gift-preview" title="Live preview halaman kado"></iframe>
+              </div>
+              <aside class="publish-card">
+                <p class="publish-status" id="publish-status">DRAFT</p>
+                <h2>Kadomu siap?</h2>
+                <p>Publish akan membuat link gift dapat dibuka. Kamu tetap bisa mengeditnya lewat magic link ini.</p>
+                <div class="publish-errors" id="publish-errors" hidden></div>
+                <button class="comic-button comic-button--red" id="publish-button" type="button">Publish kado</button>
+                <div class="published-result" id="published-result" hidden>
+                  <label>Link gift</label>
+                  <div class="copy-row"><input id="gift-url" readonly><button id="copy-gift-url" type="button">Copy</button></div>
+                  <div class="qr-card"><div id="qr-code"></div><p>Scan untuk membuka kadonya</p></div>
+                  <button class="comic-button comic-button--yellow" id="download-qr" type="button">Download QR PNG</button>
+                  <a class="text-link" id="open-public-gift" target="_blank" rel="noreferrer">Buka gift di tab baru</a>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <footer class="wizard-actions">
+            <button class="nav-button" id="previous-step" type="button" hidden>Kembali</button>
+            <span id="step-hint">Semua perubahan disimpan otomatis.</span>
+            <button class="nav-button nav-button--next" id="next-step" type="button">Lanjut</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <template id="gallery-item-template">
+    <article class="gallery-item">
+      <div class="polaroid-upload">
+        <img alt="Preview foto" hidden>
+        <label><input class="gallery-file" type="file" accept="image/jpeg,image/png,image/webp" hidden><span>Upload foto</span><small>JPG, PNG, WEBP</small></label>
+        <i class="uploading-badge" hidden>Mengunggah...</i>
+      </div>
+      <div class="gallery-fields">
+        <div class="gallery-item-head"><strong>Foto <span class="gallery-number">1</span></strong><button class="remove-photo" type="button">Hapus</button></div>
+        <label class="field"><span>Judul foto</span><input class="gallery-title" maxlength="100" placeholder="Contoh: The birthday girl"></label>
+        <label class="field"><span>Cerita kecil</span><textarea class="gallery-story" rows="3" maxlength="350" placeholder="Apa yang ingin kamu ceritakan tentang foto ini?"></textarea></label>
+      </div>
+    </article>
+  </template>
+
+  <script src="/shared/project.js"></script>
+  <script src="/runtime-config.js"></script>
+  <script>
+    if (["localhost", "127.0.0.1", "::1"].includes(location.hostname)) {
+      document.write('<script src="/dev/mock-api.js"><\/script>');
+    }
+  </script>
+  <script src="/shared/api.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kZ0LzPYO2gqXMdJ6MLxAk0UyRFt87PIY3dElG6VxgmMVQw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="/studio/app.js"></script>
+</body>
+</html>
