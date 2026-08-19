@@ -58,6 +58,28 @@ test("gallery schema supports muted autoplay video media", () => {
   assert.equal(project.gallery[0].imageUrl, "");
 });
 
+test("gallery supports up to fifteen photo or video items", () => {
+  const project = Project.normalizeProject({
+    projectId: "gallery-limit-demo",
+    gallery: Array.from({ length: 18 }, (_, index) => ({
+      id: `media-${index + 1}`,
+      mediaType: index % 2 ? "video" : "image",
+      mediaUrl: `https://media.example/item-${index + 1}.${index % 2 ? "mp4" : "webp"}`
+    }))
+  });
+  assert.equal(Project.MAX_GALLERY_ITEMS, 15);
+  assert.equal(project.gallery.length, 15);
+});
+
+test("gallery room title and subtitle are customer-editable project data", () => {
+  const project = Project.normalizeProject({
+    projectId: "custom-gallery-room",
+    galleryRoom: { title: "My Portraits", subtitle: "A collection of my favorite photos." }
+  });
+  assert.equal(project.galleryRoom.title, "My Portraits");
+  assert.equal(project.galleryRoom.subtitle, "A collection of my favorite photos.");
+});
+
 test("reads project id from gift and studio deep links", () => {
   assert.equal(Project.projectIdFromPath("/gift/sample-demo"), "sample-demo");
   assert.equal(Project.projectIdFromPath("/studio/ORDER-123"), "order-123");

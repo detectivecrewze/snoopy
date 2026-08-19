@@ -11,6 +11,35 @@
     heartfelt: "Di hari spesial ini, semoga kamu selalu dikelilingi orang-orang baik, diberi kesehatan, dan menemukan kebahagiaan dalam setiap langkah yang kamu jalani.",
     cheerful: "Selamat membuka babak baru! Semoga tahun ini membawa lebih banyak keberanian, kesempatan baik, cerita seru, dan alasan untuk terus tersenyum."
   });
+  const LETTER_PRESETS = Object.freeze({
+    warm: ({ recipient, sender }) => ({
+      greeting: `Untuk ${recipient || "kamu yang istimewa"},`,
+      paragraphs: [
+        "Selamat ulang tahun. Semoga hari spesial ini menjadi awal dari banyak hal baik yang akan datang dalam hidupmu.",
+        "Aku berharap kamu selalu diberi kesehatan, ketenangan, dan keberanian untuk menjalani setiap langkah. Semoga ada banyak alasan sederhana yang membuatmu tersenyum setiap hari.",
+        "Terima kasih sudah menjadi dirimu sendiri. Tetaplah bertumbuh dengan caramu dan nikmati setiap cerita baru yang menantimu."
+      ],
+      signoff: `Dengan penuh kasih,\n${sender || "Seseorang yang menyayangimu"}`
+    }),
+    prayer: ({ recipient, sender }) => ({
+      greeting: `Untuk ${recipient || "kamu"} di hari spesialmu,`,
+      paragraphs: [
+        "Di hari ulang tahunmu, aku ingin mengirimkan doa-doa baik untuk setiap perjalanan yang akan kamu jalani.",
+        "Semoga langkahmu selalu dipertemukan dengan kesempatan yang baik, orang-orang yang tulus, serta kekuatan untuk melewati hari yang tidak mudah.",
+        "Semoga semua hal yang sedang kamu usahakan menemukan jalannya pada waktu yang tepat. Jangan lupa memberi ruang untuk beristirahat, bersyukur, dan menikmati prosesnya."
+      ],
+      signoff: `Dengan doa terbaik,\n${sender || "Seseorang yang peduli padamu"}`
+    }),
+    cheerful: ({ recipient, sender }) => ({
+      greeting: `Hai ${recipient || "birthday star"},`,
+      paragraphs: [
+        "Selamat ulang tahun. Hari ini adalah waktunya merayakan dirimu dan semua cerita seru yang sudah berhasil kamu lewati.",
+        "Semoga tahun baru dalam hidupmu dipenuhi kejutan menyenangkan, kesempatan baru, tawa yang lebih banyak, dan kenangan yang ingin kamu simpan selamanya.",
+        "Teruslah mencoba hal baru, percaya pada kemampuanmu, dan jangan takut membuat cerita yang benar-benar kamu sukai."
+      ],
+      signoff: `Dengan semangat terbaik,\n${sender || "Seseorang yang mendukungmu"}`
+    })
+  });
   const QR_PALETTES = Object.freeze({
     berry: { ink: "#ef7297", accent: "#f5adc1", paper: "#fffaf1" },
     comic: { ink: "#e94238", accent: "#f8d44c", paper: "#fffdf4" },
@@ -38,6 +67,7 @@
   let qrInstance = null;
   let qrPaletteKey = "berry";
   let studioReady = false;
+  let pendingDeleteMediaId = "";
 
   function showState(title, message, options = {}) {
     $("#studio-state").hidden = false;
@@ -79,6 +109,8 @@
     $("#warm-message").value = project.warmWish.message;
     $("#warm-signature").value = project.warmWish.signature;
     $("#warm-count").textContent = String(project.warmWish.message.length);
+    $("#gallery-room-title").value = project.galleryRoom.title;
+    $("#gallery-room-subtitle").value = project.galleryRoom.subtitle;
     $("#letter-greeting").value = project.letter.greeting;
     $("#letter-body").value = project.letter.paragraphs.join("\n\n");
     $("#letter-signoff").value = project.letter.signoff;
@@ -109,6 +141,10 @@
       warmWish: {
         message: $("#warm-message").value,
         signature: $("#warm-signature").value
+      },
+      galleryRoom: {
+        title: $("#gallery-room-title").value,
+        subtitle: $("#gallery-room-subtitle").value
       },
       gallery: draft.gallery,
       music: { tracks: musicTracks },
@@ -161,7 +197,10 @@
       if (!draft.identity.birthdayDate) errors.birthdayDate = "Tanggal ulang tahun wajib diisi.";
     }
     if (step === 2 && draft.warmWish.message.length < 3) errors.warmWish = "Ucapan singkat wajib diisi.";
-    if (step === 3 && (!draft.gallery.length || !draft.gallery[0].mediaUrl)) errors.gallery = "Tambahkan setidaknya satu foto atau video.";
+    if (step === 3) {
+      if (draft.galleryRoom.title.length < 2) errors.galleryRoomTitle = "Nama gallery room wajib diisi.";
+      if (!draft.gallery.length || !draft.gallery[0].mediaUrl) errors.gallery = "Tambahkan setidaknya satu foto atau video.";
+    }
     if (step === 4) {
       if (!draft.music.tracks.length) errors.music = "Pilih atau upload setidaknya satu lagu.";
       if (draft.music.tracks.some(track => !track.audioUrl || !track.title)) errors.musicTitle = "Setiap lagu wajib memiliki file dan judul.";
@@ -207,13 +246,47 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function currentGalleryItem(itemId) {
+    return draft.gallery.find(item => item.id === itemId) || null;
+  }
+
+  function requestDeleteGalleryItem(itemId, displayIndex) {
+    const item = currentGalleryItem(itemId);
+    if (!item) return;
+    pendingDeleteMediaId = itemId;
+    const label = item.title ? `Media ${String(displayIndex + 1).padStart(2, "0")}: ${item.title}` : `Media ${String(displayIndex + 1).padStart(2, "0")}`;
+    $("#delete-media-name").textContent = label;
+    const dialog = $("#delete-media-dialog");
+    if (typeof dialog.showModal === "function") dialog.showModal();
+  }
+
+  function closeDeleteMediaDialog() {
+    pendingDeleteMediaId = "";
+    const dialog = $("#delete-media-dialog");
+    if (dialog.open) dialog.close();
+  }
+
+  function confirmDeleteGalleryItem() {
+    const currentIndex = draft.gallery.findIndex(entry => entry.id === pendingDeleteMediaId);
+    if (currentIndex < 0) return closeDeleteMediaDialog();
+    if (draft.gallery.length === 1) {
+      draft.gallery = [{ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", imageUrl: "", title: "", story: "" }];
+    } else {
+      draft.gallery.splice(currentIndex, 1);
+    }
+    closeDeleteMediaDialog();
+    renderGallery();
+    scheduleSave();
+  }
+
   function renderGallery() {
     const editor = $("#gallery-editor");
     const template = $("#gallery-item-template");
     editor.replaceChildren();
     draft.gallery.forEach((item, index) => {
       const node = template.content.firstElementChild.cloneNode(true);
-      node.dataset.galleryId = item.id;
+      const itemId = item.id;
+      node.dataset.galleryId = itemId;
       $(".gallery-number", node).textContent = String(index + 1).padStart(2, "0");
       const image = $("img", node);
       const video = $("video", node);
@@ -234,16 +307,20 @@
       }
       $(".gallery-title", node).value = item.title;
       $(".gallery-story", node).value = item.story;
-      $(".gallery-title", node).addEventListener("input", event => { item.title = event.target.value; scheduleSave(); });
-      $(".gallery-story", node).addEventListener("input", event => { item.story = event.target.value; scheduleSave(); });
-      $(".remove-photo", node).disabled = draft.gallery.length === 1;
-      $(".remove-photo", node).addEventListener("click", () => {
-        if (draft.gallery.length === 1) return;
-        draft.gallery.splice(index, 1);
-        renderGallery();
+      $(".gallery-title", node).addEventListener("input", event => {
+        const current = currentGalleryItem(itemId);
+        if (current) current.title = event.target.value;
         scheduleSave();
       });
-      $(".gallery-file", node).addEventListener("change", event => uploadGalleryMedia(event.target.files[0], item, node));
+      $(".gallery-story", node).addEventListener("input", event => {
+        const current = currentGalleryItem(itemId);
+        if (current) current.story = event.target.value;
+        scheduleSave();
+      });
+      $(".remove-photo", node).addEventListener("click", () => {
+        requestDeleteGalleryItem(itemId, index);
+      });
+      $(".gallery-file", node).addEventListener("change", event => uploadGalleryMedia(event.target.files[0], itemId, node));
       editor.appendChild(node);
     });
     $("#add-photo").disabled = draft.gallery.length >= Project.MAX_GALLERY_ITEMS;
@@ -295,7 +372,7 @@
     return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}.webp`, { type: "image/webp" });
   }
 
-  async function uploadGalleryMedia(file, item, node) {
+  async function uploadGalleryMedia(file, itemId, node) {
     if (!file) return;
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
     const imageExtensions = ["jpg", "jpeg", "png", "webp"];
@@ -346,9 +423,11 @@
       const optimized = isVideo ? normalizedVideo : await compressPhoto(file);
       badge.textContent = "Mengunggah...";
       const result = await api.upload(optimized, isVideo ? "video" : "photo");
-      item.mediaType = isVideo ? "video" : "image";
-      item.mediaUrl = result.url;
-      item.imageUrl = isVideo ? "" : result.url;
+      const current = currentGalleryItem(itemId);
+      if (!current) throw new Error("Slot media sudah berubah. Tambahkan kembali foto atau videonya.");
+      current.mediaType = isVideo ? "video" : "image";
+      current.mediaUrl = result.url;
+      current.imageUrl = isVideo ? "" : result.url;
       renderGallery();
       scheduleSave();
     } catch (error) {
@@ -910,10 +989,33 @@
       renderGallery();
       scheduleSave();
     });
+    $("#close-delete-media").addEventListener("click", closeDeleteMediaDialog);
+    $("#cancel-delete-media").addEventListener("click", closeDeleteMediaDialog);
+    $("#confirm-delete-media").addEventListener("click", confirmDeleteGalleryItem);
+    $("#delete-media-dialog").addEventListener("click", event => {
+      if (event.target === event.currentTarget) closeDeleteMediaDialog();
+    });
+    $("#delete-media-dialog").addEventListener("close", () => { pendingDeleteMediaId = ""; });
     $$('[data-warm-preset]').forEach(button => button.addEventListener("click", () => {
       $("#warm-message").value = WARM_PRESETS[button.dataset.warmPreset] || "";
       $("#warm-count").textContent = String($("#warm-message").value.length);
       setError("warmWish", "");
+      scheduleSave();
+    }));
+    $$('[data-letter-preset]').forEach(button => button.addEventListener("click", () => {
+      const createPreset = LETTER_PRESETS[button.dataset.letterPreset];
+      if (!createPreset) return;
+      const preset = createPreset({
+        recipient: $("#recipient").value.trim(),
+        sender: $("#sender").value.trim()
+      });
+      $("#letter-greeting").value = preset.greeting;
+      $("#letter-body").value = preset.paragraphs.join("\n\n");
+      $("#letter-signoff").value = preset.signoff;
+      $("#letter-count").textContent = String($("#letter-body").value.length);
+      setError("greeting", "");
+      setError("letter", "");
+      setError("signoff", "");
       scheduleSave();
     }));
     $$('[data-music-source]').forEach(button => button.addEventListener("click", () => selectMusicSource(button.dataset.musicSource)));

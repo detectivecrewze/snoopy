@@ -63,11 +63,13 @@
     $("#wish-signature").textContent = config.warmWish.signature || identity.sender;
     $("#letter-date").textContent = Project.formatBirthdayDate(identity.birthdayDate);
     $("#letter-heading").textContent = config.letter.greeting || `Dear ${identity.recipient},`;
-    const singleMedia = config.gallery.length === 1;
-    $("#memory-card-title").textContent = singleMedia ? "A Special Moment" : "Our Memories";
-    $("#memory-card-description").textContent = singleMedia ? "one little moment worth keeping" : "tiny moments, big feelings";
-    $("#memories-title").textContent = singleMedia ? "A Special Moment" : "Our Memories";
-    $("#memories-subtitle").textContent = singleMedia ? "One favorite moment, saved here just for you." : "A few little moments worth keeping.";
+    const galleryRoom = config.galleryRoom || {};
+    const galleryTitle = galleryRoom.title || "Gallery Room";
+    const gallerySubtitle = galleryRoom.subtitle || "Kumpulan momen yang dipilih khusus untukmu.";
+    $("#memory-card-title").textContent = galleryTitle;
+    $("#memory-card-description").textContent = gallerySubtitle;
+    $("#memories-title").textContent = galleryTitle;
+    $("#memories-subtitle").textContent = gallerySubtitle;
     document.title = `A Birthday Surprise for ${identity.recipient || "You"}`;
   }
 
@@ -189,15 +191,6 @@
     audio.load();
     $("#track-name").textContent = track.title || `Lagu ${index + 1}`;
     $("#artist-name").textContent = track.artist || "Untukmu";
-    const musicCover = $("#gift-track-cover");
-    const coverPlaceholder = $("#gift-cover-placeholder");
-    musicCover.onerror = () => {
-      musicCover.onerror = null;
-      musicCover.src = "/assets/gifs/dance.webp";
-    };
-    musicCover.src = track.coverUrl || "/assets/gifs/dance.webp";
-    musicCover.hidden = false;
-    coverPlaceholder.hidden = true;
     $("#music-help").textContent = `Lagu ${index + 1} dari ${tracks.length}`;
     $("#previous-track").disabled = tracks.length < 2;
     $("#next-track").disabled = tracks.length < 2;

@@ -6,7 +6,7 @@
   "use strict";
 
   const SCHEMA_VERSION = 2;
-  const MAX_GALLERY_ITEMS = 6;
+  const MAX_GALLERY_ITEMS = 15;
   const MAX_MUSIC_TRACKS = 3;
   const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,63}$/;
 
@@ -46,6 +46,10 @@
         subtitle: "Empat kejutan kecil yang dibuat khusus untukmu."
       },
       warmWish: { message: "", signature: "" },
+      galleryRoom: {
+        title: "Gallery Room",
+        subtitle: "Kumpulan momen yang dipilih khusus untukmu."
+      },
       gallery: [{ id: makeId("media"), mediaType: "image", mediaUrl: "", imageUrl: "", title: "", story: "" }],
       music: { tracks: [], sourceType: "catalog", catalogId: "", audioUrl: "", coverUrl: "", title: "", artist: "" },
       letter: { greeting: "", paragraphs: [], signoff: "" },
@@ -61,6 +65,7 @@
     const fallback = emptyProject(projectId || text(source.projectId, "new-gift"));
     const identity = source.identity && typeof source.identity === "object" ? source.identity : {};
     const warmWish = source.warmWish && typeof source.warmWish === "object" ? source.warmWish : {};
+    const galleryRoom = source.galleryRoom && typeof source.galleryRoom === "object" ? source.galleryRoom : {};
     const music = source.music && typeof source.music === "object" ? source.music : {};
     const letter = source.letter && typeof source.letter === "object" ? source.letter : {};
     const settings = source.settings && typeof source.settings === "object" ? source.settings : {};
@@ -104,6 +109,10 @@
         message: text(warmWish.message, ""),
         signature: text(warmWish.signature, "")
       },
+      galleryRoom: {
+        title: text(galleryRoom.title, fallback.galleryRoom.title).slice(0, 80),
+        subtitle: text(galleryRoom.subtitle, fallback.galleryRoom.subtitle).slice(0, 160)
+      },
       gallery: gallery.length ? gallery : fallback.gallery,
       music: {
         tracks,
@@ -133,6 +142,7 @@
     if (normalized.identity.sender.length < 2) add("sender", "Nama pengirim wajib diisi.");
     if (!normalized.identity.birthdayDate) add("birthdayDate", "Tanggal ulang tahun wajib diisi.");
     if (normalized.warmWish.message.length < 3) add("warmWish", "Ucapan singkat wajib diisi.");
+    if (normalized.galleryRoom.title.length < 2) add("galleryRoomTitle", "Nama gallery room wajib diisi.");
     if (!normalized.gallery.length || !normalized.gallery[0].mediaUrl) add("gallery", "Tambahkan setidaknya satu foto atau video.");
     if (!normalized.music.tracks.length) add("music", "Pilih atau unggah setidaknya satu lagu.");
     if (normalized.music.tracks.some(track => !track.audioUrl || !track.title)) add("musicTitle", "Setiap lagu wajib memiliki file dan judul.");

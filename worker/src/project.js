@@ -1,5 +1,5 @@
 export const SCHEMA_VERSION = 2;
-export const MAX_GALLERY_ITEMS = 6;
+export const MAX_GALLERY_ITEMS = 15;
 export const MAX_MUSIC_TRACKS = 3;
 export const MAX_WISH_LENGTH = 280;
 export const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,63}$/;
@@ -28,6 +28,10 @@ export function emptyProject(projectId) {
       subtitle: "Empat kejutan kecil yang dibuat khusus untukmu."
     },
     warmWish: { message: "", signature: "" },
+    galleryRoom: {
+      title: "Gallery Room",
+      subtitle: "Kumpulan momen yang dipilih khusus untukmu."
+    },
     gallery: [{ id: crypto.randomUUID(), mediaType: "image", mediaUrl: "", imageUrl: "", title: "", story: "" }],
     music: { tracks: [], sourceType: "catalog", catalogId: "", audioUrl: "", coverUrl: "", title: "", artist: "" },
     letter: { greeting: "", paragraphs: [], signoff: "" },
@@ -43,6 +47,7 @@ export function normalizeProject(input, projectId, existing = null) {
   const previous = existing && typeof existing === "object" ? existing : emptyProject(projectId);
   const identity = source.identity && typeof source.identity === "object" ? source.identity : {};
   const warmWish = source.warmWish && typeof source.warmWish === "object" ? source.warmWish : {};
+  const galleryRoom = source.galleryRoom && typeof source.galleryRoom === "object" ? source.galleryRoom : {};
   const music = source.music && typeof source.music === "object" ? source.music : {};
   const letter = source.letter && typeof source.letter === "object" ? source.letter : {};
   const settings = source.settings && typeof source.settings === "object" ? source.settings : {};
@@ -86,6 +91,10 @@ export function normalizeProject(input, projectId, existing = null) {
       message: cleanText(warmWish.message, "", 650),
       signature: cleanText(warmWish.signature, "", 80)
     },
+    galleryRoom: {
+      title: cleanText(galleryRoom.title, previous.galleryRoom?.title || "Gallery Room", 80),
+      subtitle: cleanText(galleryRoom.subtitle, previous.galleryRoom?.subtitle || "Kumpulan momen yang dipilih khusus untukmu.", 160)
+    },
     gallery: gallery.length ? gallery : emptyProject(projectId).gallery,
     music: {
       tracks,
@@ -112,6 +121,7 @@ export function validatePublishedProject(project) {
   if (project.identity.sender.length < 2) errors.sender = "Nama pengirim wajib diisi.";
   if (!project.identity.birthdayDate) errors.birthdayDate = "Tanggal ulang tahun wajib diisi.";
   if (project.warmWish.message.length < 3) errors.warmWish = "Warm Wishes wajib diisi.";
+  if (project.galleryRoom.title.length < 2) errors.galleryRoomTitle = "Nama gallery room wajib diisi.";
   if (!project.gallery.length || !project.gallery[0].mediaUrl) errors.gallery = "Tambahkan setidaknya satu foto atau video.";
   if (!project.music.tracks.length) errors.music = "Pilih atau unggah setidaknya satu lagu.";
   if (project.music.tracks.some(track => !track.audioUrl || !track.title)) errors.musicTitle = "Setiap lagu wajib memiliki file dan judul.";
@@ -129,6 +139,7 @@ export function publicProject(record) {
     status: normalized.status,
     identity: normalized.identity,
     warmWish: normalized.warmWish,
+    galleryRoom: normalized.galleryRoom,
     gallery: normalized.gallery,
     music: normalized.music,
     letter: normalized.letter,

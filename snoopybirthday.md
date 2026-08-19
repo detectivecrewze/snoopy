@@ -183,7 +183,7 @@ Gift memiliki state loading, invalid ID, not found/unpublished, network error, d
 5. Customer mengisi tujuh langkah:
    1. Identitas: penerima, pengirim, tanggal ulang tahun, subtitle.
    2. Warm Wishes: tiga preset generik, pesan custom, dan signature.
-   3. Galeri: 1–6 foto dalam editor grid, judul, dan cerita.
+   3. Galeri: nama gallery room dinamis, deskripsi room, 1–15 foto atau video dalam editor grid, judul, cerita, dan dialog konfirmasi sebelum menghapus media.
    4. Musik: katalog atau upload MP3, cover, preview, dan playlist maksimal tiga lagu.
    5. Surat: greeting, paragraf, dan signoff.
    6. Wish Inbox: daftar wish terbaru dan timestamp.
@@ -269,6 +269,10 @@ Schema saat ini adalah `schemaVersion: 2`. Payload schema v1 dengan satu lagu di
     "message": "Ucapan singkat",
     "signature": "Dengan sayang"
   },
+  "galleryRoom": {
+    "title": "My Portraits",
+    "subtitle": "Kumpulan foto favorit yang ingin disimpan."
+  },
   "gallery": [
     {
       "id": "media-id",
@@ -309,7 +313,9 @@ Schema saat ini adalah `schemaVersion: 2`. Payload schema v1 dengan satu lagu di
 ### Batas validasi server
 
 - Project ID: lowercase alphanumeric dan dash, 3–64 karakter.
-- Maksimal galeri: 6 media berupa foto atau video.
+- Maksimal galeri: 15 media berupa foto atau video.
+- Nama gallery room: maksimal 80 karakter.
+- Deskripsi gallery room: maksimal 160 karakter.
 - Maksimal playlist: 3 lagu.
 - Nama penerima/pengirim: maksimal 80 karakter.
 - Subtitle: maksimal 120 karakter.
@@ -329,6 +335,7 @@ Project hanya dapat dipublish jika:
 
 - Penerima, pengirim, dan tanggal ulang tahun terisi.
 - Warm Wishes minimal 3 karakter.
+- Nama gallery room minimal 2 karakter.
 - Media pertama memiliki `mediaUrl`.
 - Musik memiliki 1–3 item di `music.tracks[]`; setiap item memiliki `audioUrl` dan title.
 - Surat memiliki greeting, minimal satu paragraf, dan signoff.
@@ -584,8 +591,8 @@ Perintah ini menjalankan syntax check pada frontend, Studio, admin, shared files
 Hasil terakhir pada 20 Agustus 2026:
 
 ```text
-tests: 16
-pass: 16
+tests: 19
+pass: 19
 fail: 0
 ```
 

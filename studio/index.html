@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/studio/styles.css?v=20260820-3">
+  <link rel="stylesheet" href="/studio/styles.css?v=20260820-7">
 </head>
 <body>
   <div class="studio-grain" aria-hidden="true"></div>
@@ -118,9 +118,20 @@
               <div>
                 <p class="kicker">LANGKAH 03</p>
                 <h1 id="step-3-title">Susun galeri polaroid</h1>
-                <p>Tambahkan 1 sampai 6 foto atau video. Video maksimal 20 MB dan diputar otomatis tanpa suara.</p>
+                <p>Tambahkan 1 sampai 15 foto atau video. Video maksimal 20 MB dan diputar otomatis tanpa suara.</p>
               </div>
               <button class="small-button" id="add-photo" type="button">Tambah media</button>
+            </div>
+            <div class="paper-form two-columns gallery-room-form">
+              <label class="field">
+                <span>Nama gallery room</span>
+                <input id="gallery-room-title" maxlength="80" placeholder="Contoh: My Portraits" required>
+                <small class="field-error" data-error-for="galleryRoomTitle"></small>
+              </label>
+              <label class="field">
+                <span>Deskripsi gallery room</span>
+                <input id="gallery-room-subtitle" maxlength="160" placeholder="Contoh: Beberapa foto favorit yang ingin kusimpan.">
+              </label>
             </div>
             <div class="gallery-editor" id="gallery-editor"></div>
             <p class="section-error" data-error-for="gallery"></p>
@@ -179,6 +190,11 @@
               <p class="kicker">LANGKAH 05</p>
               <h1 id="step-5-title">Tulis surat paling personal</h1>
               <p>Pisahkan setiap paragraf dengan satu baris kosong. Isi surat tidak akan diubah otomatis.</p>
+            </div>
+            <div class="wish-presets" aria-label="Preset surat">
+              <button type="button" data-letter-preset="warm"><b>Hangat dan sederhana</b><span>Surat tulus yang cocok untuk siapa saja.</span></button>
+              <button type="button" data-letter-preset="prayer"><b>Penuh doa baik</b><span>Harapan baik untuk perjalanan tahun berikutnya.</span></button>
+              <button type="button" data-letter-preset="cheerful"><b>Ceria dan suportif</b><span>Pesan ringan dengan semangat positif.</span></button>
             </div>
             <div class="letter-editor">
               <label class="field"><span>Greeting</span><input id="letter-greeting" maxlength="120" placeholder="Untuk kamu yang sedang berulang tahun," required><small class="field-error" data-error-for="greeting"></small></label>
@@ -253,8 +269,25 @@
     </div>
   </div>
 
+  <dialog class="media-delete-dialog" id="delete-media-dialog" aria-labelledby="delete-media-title" aria-describedby="delete-media-description">
+    <div class="media-delete-card">
+      <div class="dialog-tape" aria-hidden="true"></div>
+      <button class="dialog-close" id="close-delete-media" type="button" aria-label="Tutup dialog">×</button>
+      <span class="delete-sticker" aria-hidden="true">×</span>
+      <p class="kicker">DOUBLE CHECK</p>
+      <h2 id="delete-media-title">Hapus media ini?</h2>
+      <p id="delete-media-description">Media yang dihapus harus diunggah ulang jika ingin digunakan kembali.</p>
+      <strong class="delete-media-name" id="delete-media-name">Media</strong>
+      <div class="media-delete-actions">
+        <button class="nav-button" id="cancel-delete-media" type="button">Batal, simpan</button>
+        <button class="nav-button delete-confirm-button" id="confirm-delete-media" type="button">Ya, hapus media</button>
+      </div>
+    </div>
+  </dialog>
+
   <template id="gallery-item-template">
     <article class="gallery-item">
+      <button class="remove-photo" type="button" aria-label="Hapus media" title="Hapus media"><span aria-hidden="true">×</span></button>
       <div class="polaroid-upload">
         <img alt="Preview foto" hidden>
         <video muted autoplay loop playsinline hidden aria-label="Preview video"></video>
@@ -262,7 +295,7 @@
         <i class="uploading-badge" hidden>Mengunggah...</i>
       </div>
       <div class="gallery-fields">
-        <div class="gallery-item-head"><strong>Foto <span class="gallery-number">1</span></strong><button class="remove-photo" type="button">Hapus</button></div>
+        <div class="gallery-item-head"><strong>Media <span class="gallery-number">1</span></strong></div>
         <p class="photo-upload-error" role="alert" hidden></p>
         <label class="field"><span>Judul foto</span><input class="gallery-title" maxlength="100" placeholder="Contoh: Senyum favorit"></label>
         <label class="field"><span>Cerita kecil</span><textarea class="gallery-story" rows="3" maxlength="350" placeholder="Apa yang ingin kamu ceritakan tentang foto ini?"></textarea></label>
@@ -270,15 +303,15 @@
     </article>
   </template>
 
-  <script src="/shared/project.js?v=20260820-3"></script>
-  <script src="/runtime-config.js?v=20260820-3"></script>
+  <script src="/shared/project.js?v=20260820-7"></script>
+  <script src="/runtime-config.js?v=20260820-7"></script>
   <script>
     if (["localhost", "127.0.0.1", "::1"].includes(location.hostname)) {
-      document.write('<script src="/dev/mock-api.js?v=20260820-3"><\/script>');
+      document.write('<script src="/dev/mock-api.js?v=20260820-7"><\/script>');
     }
   </script>
-  <script src="/shared/api.js?v=20260820-3"></script>
+  <script src="/shared/api.js?v=20260820-7"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer"></script>
-  <script src="/studio/app.js?v=20260820-3"></script>
+  <script src="/studio/app.js?v=20260820-7"></script>
 </body>
 </html>

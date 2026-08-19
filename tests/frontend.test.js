@@ -27,6 +27,8 @@ test("gift production shell no longer loads customer config.js", () => {
   assert.doesNotMatch(gift, /src=["']\/?config\.js|window\.GIFT_CONFIG/);
   assert.match(gift, /\/shared\/project\.js/);
   assert.match(gift, /\/runtime-config\.js/);
+  assert.match(gift, /gif-slot--memory-room/);
+  assert.match(gift, /data-gif="memoriesLogo"/);
 });
 
 test("music catalog supports covers, selection, and audio preview", () => {
@@ -42,6 +44,7 @@ test("music catalog supports covers, selection, and audio preview", () => {
   assert.match(studio, /id="studio-seek"/);
   assert.match(studio, /id="studio-playlist"/);
   assert.equal((studio.match(/data-warm-preset=/g) || []).length, 3);
+  assert.equal((studio.match(/data-letter-preset=/g) || []).length, 3);
   assert.equal((studio.match(/data-qr-palette=/g) || []).length, 4);
   assert.match(studio, /video\/mp4/);
   assert.match(studio, /muted autoplay loop playsinline/);
@@ -51,8 +54,17 @@ test("music catalog supports covers, selection, and audio preview", () => {
   assert.match(studioApp, /MAX_MUSIC_TRACKS/);
   assert.match(studioApp, /drawHeartQr/);
   assert.match(studioApp, /20 \* 1024 \* 1024/);
+  assert.match(studioApp, /currentGalleryItem\(itemId\)/);
+  assert.doesNotMatch(studioApp, /uploadGalleryMedia\(event\.target\.files\[0\], item, node\)/);
+  assert.match(studio, /id="gallery-room-title"/);
+  assert.match(studio, /id="delete-media-dialog"/);
+  assert.match(studio, /id="confirm-delete-media"/);
+  assert.match(studioApp, /requestDeleteGalleryItem/);
+  assert.match(studioApp, /confirmDeleteGalleryItem/);
   assert.match(sharedProject, /coverUrl/);
   assert.match(workerProject, /coverUrl/);
+  assert.doesNotMatch(read("index.html"), /gift-track-cover/);
+  assert.doesNotMatch(read("app.js"), /gift-track-cover/);
 });
 
 test("admin dashboard includes secure login, generator, filters, and destructive confirmation", () => {

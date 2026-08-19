@@ -12,6 +12,10 @@
     "message": "Selamat ulang tahun! Semoga hari spesialmu dipenuhi kebahagiaan, tawa, dan banyak momen indah yang layak dikenang.",
     "signature": "Nama Pengirim"
   },
+  "galleryRoom": {
+    "title": "Gallery Room",
+    "subtitle": "Kumpulan momen yang dipilih khusus untukmu."
+  },
   "gallery": [
     {
       "id": "photo-sample",

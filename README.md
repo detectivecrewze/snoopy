@@ -44,11 +44,11 @@ Penghapusan permanen turut membersihkan config project, wish inbox, idempotency 
 
 ## Dynamic project contract
 
-Customer content menggunakan schema version 2 dengan bagian `identity`, `warmWish`, `gallery`, `music`, `letter`, dan `settings`. Schema v1 dengan satu lagu tetap dimigrasikan otomatis saat dibaca. Gift publik mengambil data dari `GET /api/gift/:id`; studio menggunakan endpoint `/api/studio/:id`, `/api/upload`, dan `/api/wishes/:id` melalui adapter bersama.
+Customer content menggunakan schema version 2 dengan bagian `identity`, `warmWish`, `galleryRoom`, `gallery`, `music`, `letter`, dan `settings`. `galleryRoom` menyimpan judul serta deskripsi halaman media yang dapat dinamai customer. Schema v1 dengan satu lagu tetap dimigrasikan otomatis saat dibaca. Gift publik mengambil data dari `GET /api/gift/:id`; studio menggunakan endpoint `/api/studio/:id`, `/api/upload`, dan `/api/wishes/:id` melalui adapter bersama.
 
 GIF dan visual Snoopy adalah aset tema statis. Data penerima, pengirim, tanggal, ucapan, galeri, lagu, dan surat tidak disimpan di HTML gift atau JavaScript production.
 
-Galeri menerima JPG, PNG, dan WEBP maksimal 8 MB sebelum kompresi, serta MP4 atau WEBM maksimal 20 MB. Video disimpan di R2 dan tampil autoplay, loop, muted, serta playsinline. Generator QR menyediakan empat palet dan mempertahankan QR standar di tengah pola hati dekoratif agar tetap mudah dipindai.
+Galeri menerima maksimal 15 media: JPG, PNG, dan WEBP maksimal 8 MB sebelum kompresi, serta MP4, WEBM, atau MOV maksimal 20 MB. Video disimpan di R2 dan tampil autoplay, loop, muted, serta playsinline. Generator QR menyediakan empat palet dan mempertahankan QR standar di tengah pola hati dekoratif agar tetap mudah dipindai.
 
 ## Music catalog
 
