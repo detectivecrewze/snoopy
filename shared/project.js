@@ -145,7 +145,13 @@
     return new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(date);
   }
 
-  function projectIdFromPath(pathname) {
+  function projectIdFromPath(pathname, search = "") {
+    try {
+      const queryProject = text(new URLSearchParams(String(search || "")).get("project"), "");
+      if (queryProject) return queryProject.toLowerCase();
+    } catch {
+      // Continue with the clean production path.
+    }
     const match = String(pathname || "").match(/^\/(?:gift|studio)\/([^/?#]+)/i);
     return match ? decodeURIComponent(match[1]).toLowerCase() : "";
   }

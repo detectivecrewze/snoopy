@@ -14,4 +14,4 @@ id = "b2cf6b4dfda84217ac0365178621a4fe"
 
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
-bucket_name = "arcade-edition-storage"
+bucket_name = "valentine-upload"

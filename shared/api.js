@@ -11,17 +11,33 @@
   }
 
   async function jsonRequest(path, options = {}) {
-    const response = await fetch(`${getApiBase()}${path}`, {
-      ...options,
-      headers: {
-        Accept: "application/json",
-        ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-        ...(options.headers || {})
-      }
-    });
+    const { timeoutMs = 30000, ...requestOptions } = options;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    let response;
+    try {
+      response = await fetch(`${getApiBase()}${path}`, {
+        ...requestOptions,
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          ...(requestOptions.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+          ...(requestOptions.headers || {})
+        }
+      });
+    } catch (cause) {
+      const timedOut = cause?.name === "AbortError";
+      const error = new Error(timedOut
+        ? "Upload terlalu lama dan dihentikan. Periksa koneksi, Worker, dan binding R2."
+        : "Tidak dapat terhubung ke API. Periksa koneksi dan konfigurasi CORS Worker.");
+      error.cause = cause;
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const error = new Error(payload.error || "Permintaan belum berhasil.");
+      const error = new Error(payload.error || `Permintaan gagal dengan status HTTP ${response.status}.`);
       error.status = response.status;
       error.payload = payload;
       throw error;
@@ -73,7 +89,7 @@
       body.append("projectId", this.projectId);
       body.append("kind", kind);
       body.append("file", file);
-      return jsonRequest("/api/upload", { method: "POST", headers: tokenHeaders(this.token), body });
+      return jsonRequest("/api/upload", { method: "POST", headers: tokenHeaders(this.token), body, timeoutMs: 60000 });
     }
 
     getWishes() {

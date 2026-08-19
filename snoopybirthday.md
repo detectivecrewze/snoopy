@@ -4,7 +4,7 @@ Dokumen ini adalah sumber konteks utama untuk agent yang melanjutkan pengembanga
 
 **Status dokumen:** 20 Agustus 2026  
 **Status implementasi:** Step 1 sampai Step 4 selesai secara lokal  
-**Status deployment:** belum di-deploy ke Cloudflare atau Vercel  
+**Status deployment:** Worker dan frontend sudah memiliki deployment production; production smoke test dan perbaikan upload masih berlangsung  
 **Keputusan media:** memakai bucket R2 For You Always yang sudah ada melalui `https://cdn.for-you-always.my.id`  
 **Batas scope saat ini:** hanya folder `snoopy-gift-standalone`
 
@@ -201,7 +201,7 @@ Gift memiliki state loading, invalid ID, not found/unpublished, network error, d
    - Melihat statistik total/draft/published/archived.
    - Mencari berdasarkan project ID, penerima, pengirim, atau source.
    - Memfilter status.
-   - Membuat project manual/gratis.
+   - Membuat project manual/gratis melalui satu tombol `Generate random link`; identitas diisi customer di Studio.
    - Menyalin magic link Studio.
    - Membuka gift published.
    - Archive dan restore.
@@ -545,7 +545,7 @@ Studio: http://localhost:3000/studio/cindy-demo?mock=1#token=demo-token
 Admin:  http://localhost:3000/admin
 ```
 
-Gift dan Studio menggunakan `dev/mock-api.js` serta `localStorage` pada localhost. Admin **tidak memiliki mock API**. Agar `/admin` benar-benar berfungsi, jalankan Worker terpisah dan isi API base lokal, atau arahkan `runtime-config.js` sementara ke Worker development. Jangan commit URL sementara tanpa sengaja.
+Gift dan Studio menggunakan `dev/mock-api.js` serta `localStorage` pada localhost. Admin **tidak memiliki mock API** dan tetap memakai Worker yang ditentukan oleh `runtime-config.js`. Saat admin berjalan di localhost, link Studio diubah menjadi `/studio/index.html?project=:id#token=...` dan link gift menjadi `/index.html?project=:id`. Format ini kompatibel dengan static server tanpa rewrite. Pada production, URL cantik dari Worker dipakai tanpa perubahan.
 
 ### Menjalankan Worker
 
@@ -573,8 +573,8 @@ Perintah ini menjalankan syntax check pada frontend, Studio, admin, shared files
 Hasil terakhir pada 20 Agustus 2026:
 
 ```text
-tests: 12
-pass: 12
+tests: 13
+pass: 13
 fail: 0
 ```
 
@@ -705,9 +705,9 @@ Endpoint mengembalikan `cursor`, tetapi Studio hanya meminta daftar default dan 
 
 Mengganti foto atau MP3 akan mengunggah object baru tetapi tidak langsung menghapus object sebelumnya. Permanent delete membersihkan seluruh prefix project, tetapi project aktif dapat mengumpulkan file lama. Solusi berikutnya adalah endpoint media delete yang tervalidasi atau garbage collection berdasarkan URL yang masih direferensikan project.
 
-### 15.4 Archive belum dicek pada endpoint upload
+### 15.4 Binding R2 dan domain CDN adalah dua konfigurasi terpisah
 
-Studio GET/PUT menolak project archived, tetapi upload saat ini hanya memvalidasi project dan magic token. Tambahkan guard `record.status === "archived"` pada upload untuk konsistensi.
+Worker menyimpan object melalui binding `MEDIA_BUCKET`, sedangkan browser membaca file dari `MEDIA_BASE_URL`. Upload dapat berhasil tetapi preview tetap gagal jika `https://cdn.for-you-always.my.id` tidak menunjuk ke bucket yang sama. Studio sekarang menampilkan error khusus ketika gambar hasil upload tidak dapat dibaca dari CDN. Endpoint upload juga menolak project archived.
 
 ### 15.5 Rate limit berbasis KV bersifat best-effort
 
@@ -759,15 +759,14 @@ Urutan berikut direkomendasikan. Jangan langsung mengerjakan Pakasir sebelum dep
 
 ### Priority 1 — Security dan reliability hardening
 
-1. Blok upload untuk archived project.
-2. Tambahkan pagination cursor untuk admin dan Wish Inbox.
-3. Tambahkan admin/API rate-limit di layer Cloudflare.
-4. Vendor QR library ke asset lokal.
-5. Tambahkan cleanup media orphan.
-6. Tambahkan CSP dan security headers production.
-7. Buat prosedur backup/export KV dan R2.
-8. Buat strategi secret rotation/versioning.
-9. Pertimbangkan audit log untuk create/publish/archive/delete.
+1. Tambahkan pagination cursor untuk admin dan Wish Inbox.
+2. Tambahkan admin/API rate-limit di layer Cloudflare.
+3. Vendor QR library ke asset lokal.
+4. Tambahkan cleanup media orphan.
+5. Tambahkan CSP dan security headers production.
+6. Buat prosedur backup/export KV dan R2.
+7. Buat strategi secret rotation/versioning.
+8. Pertimbangkan audit log untuk create/publish/archive/delete.
 
 ### Priority 2 — Studio UX
 

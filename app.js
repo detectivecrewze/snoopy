@@ -5,10 +5,10 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const isLocal = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+  const isLocal = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(location.hostname);
   const previewMode = new URLSearchParams(location.search).get("preview") === "1" && window.self !== window.top;
 
-  let projectId = Project.projectIdFromPath(location.pathname);
+  let projectId = Project.projectIdFromPath(location.pathname, location.search);
   if (!projectId && isLocal && location.pathname === "/") {
     history.replaceState({}, "", "/gift/cindy-demo?mock=1");
     projectId = "cindy-demo";

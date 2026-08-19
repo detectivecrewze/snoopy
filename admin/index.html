@@ -43,9 +43,9 @@
         <div>
           <p class="eyebrow">SNOOPY EDITION</p>
           <h1>Semua kado,<br><em>satu meja kerja.</em></h1>
-          <p>Buat project gratis, salin magic link, pantau status, atau bersihkan project yang sudah tidak digunakan.</p>
+          <p>Generate link acak, kirim Studio ke customer, pantau status, atau bersihkan project yang sudah tidak digunakan.</p>
         </div>
-        <button class="comic-button comic-button--red create-hero" id="open-create-modal" type="button"><span>+</span>Buat kado baru</button>
+        <button class="comic-button comic-button--red create-hero" id="generate-project" type="button"><span>+</span>Generate random link</button>
       </section>
 
       <section class="stats-grid" aria-label="Ringkasan project">
@@ -76,28 +76,12 @@
     </main>
   </div>
 
-  <dialog class="admin-modal" id="create-modal">
-    <form method="dialog" class="modal-card" id="create-form">
-      <button class="modal-close" value="cancel" aria-label="Tutup" type="submit">×</button>
-      <p class="eyebrow">FREE PROJECT</p>
-      <h2>Buat magic link baru</h2>
-      <p>Semua kolom boleh dikosongkan. Customer tetap dapat melengkapinya di studio.</p>
-      <div class="form-grid">
-        <label><span>Nama penerima</span><input id="create-recipient" maxlength="80" placeholder="Opsional"></label>
-        <label><span>Nama pengirim</span><input id="create-sender" maxlength="80" placeholder="Opsional"></label>
-        <label class="wide"><span>Tanggal ulang tahun</span><input id="create-birthday" type="date"></label>
-      </div>
-      <p class="form-error" id="create-error" role="alert"></p>
-      <button class="comic-button comic-button--red" id="create-project" type="button">Generate magic link</button>
-    </form>
-  </dialog>
-
   <dialog class="admin-modal" id="result-modal">
     <section class="modal-card result-card">
       <button class="modal-close" id="close-result" aria-label="Tutup" type="button">×</button>
       <p class="eyebrow">PROJECT READY</p>
       <h2>Magic link sudah jadi</h2>
-      <p>Kirim link studio ini kepada customer. Token tidak akan muncul pada daftar project publik.</p>
+      <p>Slug project dan token dibuat otomatis. Kirim link Studio ini kepada customer untuk mulai mengisi kadonya.</p>
       <label class="result-link"><span>Studio magic link</span><textarea id="created-studio-url" rows="4" readonly></textarea></label>
       <div class="result-actions">
         <button class="comic-button comic-button--yellow" id="copy-created-link" type="button">Copy link</button>

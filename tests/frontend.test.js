@@ -10,10 +10,16 @@ const read = file => fs.readFileSync(path.join(root, file), "utf8");
 
 test("studio exposes seven wizard steps and dynamic runtime configuration", () => {
   const studio = read("studio/index.html");
+  const studioApp = read("studio/app.js");
+  const api = read("shared/api.js");
   assert.equal((studio.match(/class="wizard-step/g) || []).length, 7);
   assert.match(studio, /\/runtime-config\.js/);
   assert.match(studio, /id="gift-preview"/);
   assert.match(studio, /id="qr-code"/);
+  assert.match(studioApp, /\/index\.html\?\$\{params\}/);
+  assert.match(studioApp, /Membaca foto/);
+  assert.match(api, /timeoutMs: 60000/);
+  assert.match(api, /Upload terlalu lama dan dihentikan/);
 });
 
 test("gift production shell no longer loads customer config.js", () => {
@@ -25,11 +31,16 @@ test("gift production shell no longer loads customer config.js", () => {
 
 test("admin dashboard includes secure login, generator, filters, and destructive confirmation", () => {
   const admin = read("admin/index.html");
+  const adminApp = read("admin/app.js");
   assert.match(admin, /type="password"/);
-  assert.match(admin, /id="open-create-modal"/);
+  assert.match(admin, /id="generate-project"/);
   assert.match(admin, /id="status-filter"/);
   assert.match(admin, /id="delete-confirmation"/);
+  assert.doesNotMatch(admin, /create-recipient|create-sender|create-birthday/);
   assert.doesNotMatch(admin, /Admin sedang disiapkan/);
+  assert.match(adminApp, /DEV_HOSTS/);
+  assert.match(adminApp, /\/studio\/index\.html/);
+  assert.match(adminApp, /params\.set\("project"/);
 });
 
 test("runtime config does not contain a secret", () => {
@@ -43,6 +54,10 @@ test("Vercel is forced to deploy the allowlisted static dist output", () => {
   assert.equal(config.framework, null);
   assert.equal(config.buildCommand, "npm run build");
   assert.equal(config.outputDirectory, "dist");
+  assert.deepEqual(config.rewrites, [
+    { source: "/gift/:id", destination: "/" },
+    { source: "/studio/:id", destination: "/studio" }
+  ]);
   assert.match(build, /assets\/gifs/);
   assert.match(build, /assets\/data/);
   assert.doesNotMatch(build, /worker|tests|fixtures|server\.js|assets\/photos|assets\/audio/);

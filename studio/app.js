@@ -4,7 +4,8 @@
   const Project = window.GiftProject;
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-  const projectId = Project.projectIdFromPath(location.pathname);
+  const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+  const projectId = Project.projectIdFromPath(location.pathname, location.search);
   const tokenStorageKey = `snoopy-studio:token:${projectId}`;
   const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
   const incomingToken = hash.get("token") || "";
@@ -200,6 +201,11 @@
         image.hidden = false;
         upload.classList.add("has-image");
         $(".polaroid-upload label span", node).textContent = "Ganti foto";
+        image.addEventListener("error", () => {
+          const errorBox = $(".photo-upload-error", node);
+          errorBox.textContent = "Foto sudah tersimpan, tetapi belum dapat dibuka dari CDN. Periksa domain R2 atau coba refresh sebentar lagi.";
+          errorBox.hidden = false;
+        });
       }
       $(".gallery-title", node).value = item.title;
       $(".gallery-story", node).value = item.story;
@@ -218,16 +224,47 @@
     $("#add-photo").disabled = draft.gallery.length >= Project.MAX_GALLERY_ITEMS;
   }
 
+  function loadPhoto(file) {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("Browser terlalu lama membaca foto. Coba gunakan file JPG, PNG, atau WEBP lain."));
+      }, 15000);
+      const cleanup = () => {
+        window.clearTimeout(timeout);
+        image.onload = null;
+        image.onerror = null;
+      };
+      image.onload = () => {
+        cleanup();
+        resolve({ image, objectUrl });
+      };
+      image.onerror = () => {
+        cleanup();
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("File foto tidak dapat dibaca oleh browser."));
+      };
+      image.src = objectUrl;
+    });
+  }
+
   async function compressPhoto(file) {
-    if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("Gunakan foto JPG, PNG, atau WEBP.");
+    const extension = file?.name?.split(".").pop()?.toLowerCase() || "";
+    const allowedType = ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file?.type?.toLowerCase());
+    const allowedExtension = ["jpg", "jpeg", "png", "webp"].includes(extension);
+    if (!file || (!allowedType && !allowedExtension)) throw new Error("Gunakan foto JPG, PNG, atau WEBP.");
     if (file.size > 8 * 1024 * 1024) throw new Error("Ukuran foto maksimal 8 MB.");
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const { image, objectUrl } = await loadPhoto(file);
+    const width = image.naturalWidth;
+    const height = image.naturalHeight;
+    const scale = Math.min(1, 1600 / Math.max(width, height));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    canvas.getContext("2d", { alpha: false }).drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close?.();
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    canvas.getContext("2d", { alpha: false }).drawImage(image, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(objectUrl);
     const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", .86));
     if (!blob) throw new Error("Foto belum berhasil dikompresi.");
     return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}.webp`, { type: "image/webp" });
@@ -236,16 +273,35 @@
   async function uploadPhoto(file, item, node) {
     if (!file) return;
     const badge = $(".uploading-badge", node);
+    const errorBox = $(".photo-upload-error", node);
+    const image = $("img", node);
+    const upload = $(".polaroid-upload", node);
+    const previewUrl = URL.createObjectURL(file);
+    image.src = previewUrl;
+    image.hidden = false;
+    upload.classList.add("has-image");
+    $(".polaroid-upload label span", node).textContent = "Ganti foto";
+    image.addEventListener("load", () => URL.revokeObjectURL(previewUrl), { once: true });
+    image.addEventListener("error", () => URL.revokeObjectURL(previewUrl), { once: true });
     badge.hidden = false;
+    badge.textContent = "Membaca foto...";
+    errorBox.hidden = true;
+    errorBox.textContent = "";
+    setError("gallery", "");
     setSaveState("saving", "Mengunggah foto...");
     try {
       const optimized = await compressPhoto(file);
+      badge.textContent = "Mengunggah...";
       const result = await api.upload(optimized, "photo");
       item.imageUrl = result.url;
       renderGallery();
       scheduleSave();
     } catch (error) {
-      setError("gallery", error.message);
+      const message = error.message || "Foto belum berhasil diunggah.";
+      console.error("Photo upload failed", { message, status: error.status, response: error.payload });
+      errorBox.textContent = `Upload gagal: ${message}`;
+      errorBox.hidden = false;
+      setError("gallery", message);
       setSaveState("error", "Foto belum terunggah");
     } finally {
       badge.hidden = true;
@@ -359,12 +415,24 @@
   function sendPreview() {
     readForm();
     const frame = $("#gift-preview");
-    if (!frame.src) frame.src = `/gift/${encodeURIComponent(projectId)}?preview=1`;
+    if (!frame.src) frame.src = previewGiftUrl();
     frame.contentWindow?.postMessage({ type: "SNOOPY_PREVIEW_PROJECT", project: draft }, location.origin);
   }
 
+  function previewGiftUrl(cacheBust = "") {
+    if (isLocalHost) {
+      const params = new URLSearchParams({ project: projectId, preview: "1" });
+      if (cacheBust) params.set("t", cacheBust);
+      return `/index.html?${params}`;
+    }
+    const suffix = cacheBust ? `&t=${encodeURIComponent(cacheBust)}` : "";
+    return `/gift/${encodeURIComponent(projectId)}?preview=1${suffix}`;
+  }
+
   function giftUrl() {
-    return `${location.origin}/gift/${encodeURIComponent(projectId)}`;
+    return isLocalHost
+      ? `${location.origin}/index.html?project=${encodeURIComponent(projectId)}`
+      : `${location.origin}/gift/${encodeURIComponent(projectId)}`;
   }
 
   function renderQr(url) {
@@ -506,7 +574,7 @@
     $("#studio-audio").addEventListener("play", () => { $("#studio-audio-toggle").textContent = "Ⅱ"; });
     $("#studio-audio").addEventListener("pause", () => { $("#studio-audio-toggle").textContent = "▶"; });
     $("#refresh-wishes").addEventListener("click", loadWishes);
-    $("#refresh-preview").addEventListener("click", () => { $("#gift-preview").src = `/gift/${encodeURIComponent(projectId)}?preview=1&t=${Date.now()}`; });
+    $("#refresh-preview").addEventListener("click", () => { $("#gift-preview").src = previewGiftUrl(String(Date.now())); });
     $("#gift-preview").addEventListener("load", () => window.setTimeout(sendPreview, 60));
     window.addEventListener("message", event => {
       if (event.origin === location.origin && event.data?.type === "SNOOPY_PREVIEW_READY") sendPreview();

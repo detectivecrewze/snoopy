@@ -37,5 +37,7 @@ test("draft normalization does not block partial autosaves", () => {
 test("reads project id from gift and studio deep links", () => {
   assert.equal(Project.projectIdFromPath("/gift/cindy-demo"), "cindy-demo");
   assert.equal(Project.projectIdFromPath("/studio/ORDER-123"), "order-123");
+  assert.equal(Project.projectIdFromPath("/studio/index.html", "?project=GIFT-LOCAL-123"), "gift-local-123");
+  assert.equal(Project.projectIdFromPath("/index.html", "?project=GIFT-LOCAL-456"), "gift-local-456");
   assert.equal(Project.projectIdFromPath("/admin"), "");
 });

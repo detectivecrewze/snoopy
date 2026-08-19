@@ -16,11 +16,13 @@ Buka:
 
 Magic token dipindahkan dari URL fragment ke `sessionStorage` saat studio dibuka. Mock draft dan wish disimpan di `localStorage`. Perilaku ini hanya aktif pada localhost dan tidak menjadi fallback production.
 
+Saat dashboard admin dibuka dari localhost, magic link Studio menggunakan `/studio/index.html?project=:id#token=...` dan link gift menggunakan `/index.html?project=:id`. Format file-plus-query ini tetap bekerja pada Live Server dan static server sederhana yang tidak mendukung deep-link rewrite. Origin serta port mengikuti `location.origin`; project ID dan token dari Worker tetap dipertahankan. Pada domain production, URL cantik dari Worker tidak diubah.
+
 ## Vercel static deployment
 
 Vercel dikunci ke preset `Other`, menjalankan `npm run build`, dan hanya mempublikasikan folder `dist`. Build tersebut menggunakan allowlist frontend sehingga `server.js`, Worker, tests, fixture development, source Markdown, foto Cindy, dan MP3 lokal tidak masuk deployment.
 
-Jangan memilih preset Express atau mengarahkan Output Directory ke root. Konfigurasi `vercel.json` sudah menetapkan Output Directory ke `dist` dan akan mengoverride pengaturan deployment berikutnya.
+Jangan memilih preset Express atau mengarahkan Output Directory ke root. Konfigurasi `vercel.json` sudah menetapkan Output Directory ke `dist` dan akan mengoverride pengaturan deployment berikutnya. Karena `cleanUrls` aktif, target rewrite menggunakan `/` dan `/studio` tanpa suffix `.html`.
 
 ## Production API
 

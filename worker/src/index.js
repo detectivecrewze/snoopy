@@ -279,6 +279,7 @@ async function handleUpload(request, env) {
   const kind = String(form.get("kind") || "").trim().toLowerCase();
   const file = form.get("file");
   const record = await requireProject(env, projectId);
+  if (record.status === "archived") throw new HttpError(410, "Project sedang diarsipkan.");
   await authorizeProject(request, env, record);
   if (!(file instanceof File)) throw new HttpError(400, "File upload wajib disertakan.");
   if (!env.MEDIA_BASE_URL) throw new HttpError(500, "MEDIA_BASE_URL belum dikonfigurasi.");
@@ -301,10 +302,15 @@ async function handleUpload(request, env) {
   }
 
   const key = `snoopy/${projectId}/${directory}/${crypto.randomUUID()}-${safeFileName(file.name.replace(/\.[^.]+$/, ""))}.${extension}`;
-  await env.MEDIA_BUCKET.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type || (kind === "audio" ? "audio/mpeg" : `image/${extension}`) },
-    customMetadata: { projectId, kind, uploadedAt: new Date().toISOString() }
-  });
+  try {
+    await env.MEDIA_BUCKET.put(key, await file.arrayBuffer(), {
+      httpMetadata: { contentType: file.type || (kind === "audio" ? "audio/mpeg" : `image/${extension}`) },
+      customMetadata: { projectId, kind, uploadedAt: new Date().toISOString() }
+    });
+  } catch (error) {
+    console.error("R2 media upload failed", { projectId, kind, key, message: error?.message });
+    throw new HttpError(502, "Media belum berhasil disimpan ke R2. Periksa binding bucket Worker.");
+  }
   return json(request, env, { url: absoluteUrl(env.MEDIA_BASE_URL, `/${key}`), key, kind }, 201, { "Cache-Control": "no-store" });
 }
 

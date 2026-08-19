@@ -98,6 +98,7 @@ button { color: inherit; }
 .polaroid-upload.has-image label { inset: auto 18px 8px; border: 0; }
 .polaroid-upload.has-image label small { display: none; }
 .uploading-badge { position: absolute; inset: auto 8px 8px auto; padding: .35rem .55rem; border-radius: 6px; color: #fff; background: var(--blue-dark); font: 700 .6rem var(--display); }
+.photo-upload-error { margin: 0; padding: .7rem .8rem; border: 2px solid var(--red-dark); border-radius: 8px; color: var(--red-dark); background: #ffe8e5; font: 600 .72rem/1.4 var(--body); }
 .gallery-fields { display: grid; align-content: start; gap: 14px; }
 .gallery-item-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
 .gallery-item-head strong { font: 700 .9rem var(--display); }

@@ -3,6 +3,7 @@
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
   const secretKey = "snoopy-admin:secret";
   let adminSecret = sessionStorage.getItem(secretKey) || "";
   let projects = [];
@@ -16,6 +17,21 @@
     if (runtime) return runtime.replace(/\/$/, "");
     const meta = document.querySelector('meta[name="gift-api-base"]')?.content?.trim();
     return meta ? meta.replace(/\/$/, "") : "";
+  }
+
+  function frontendUrl(value) {
+    if (!value || !DEV_HOSTS.has(location.hostname)) return value;
+    try {
+      const url = new URL(value, location.origin);
+      const match = url.pathname.match(/^\/(gift|studio)\/([^/]+)/);
+      if (!match) return value;
+      const params = new URLSearchParams(url.search);
+      params.set("project", decodeURIComponent(match[2]).toLowerCase());
+      const entryFile = match[1] === "studio" ? "/studio/index.html" : "/index.html";
+      return `${location.origin}${entryFile}?${params}${url.hash}`;
+    } catch {
+      return value;
+    }
   }
 
   async function adminRequest(path, options = {}) {
@@ -112,10 +128,12 @@
 
       const copyButton = $(".copy-studio", card);
       const studioLink = $(".open-studio", card);
-      copyButton.disabled = !project.studioUrl;
-      studioLink.classList.toggle("is-disabled", !project.studioUrl);
-      studioLink.href = project.studioUrl || "#";
-      copyButton.addEventListener("click", () => copyText(project.studioUrl).catch(error => toast(error.message)));
+      const studioUrl = frontendUrl(project.studioUrl);
+      const giftUrl = frontendUrl(project.giftUrl);
+      copyButton.disabled = !studioUrl;
+      studioLink.classList.toggle("is-disabled", !studioUrl);
+      studioLink.href = studioUrl || "#";
+      copyButton.addEventListener("click", () => copyText(studioUrl).catch(error => toast(error.message)));
 
       const menu = $(".action-menu", card);
       $(".more-button", card).addEventListener("click", event => {
@@ -125,7 +143,7 @@
         menu.hidden = nextHidden;
       });
       const giftLink = $(".menu-open-gift", card);
-      giftLink.href = project.giftUrl;
+      giftLink.href = giftUrl;
       giftLink.classList.toggle("is-disabled", project.status !== "published");
       giftLink.addEventListener("click", event => { if (project.status !== "published") event.preventDefault(); });
       const archiveButton = $(".menu-archive", card);
@@ -185,39 +203,27 @@
     }
   }
 
-  function openCreateDialog() {
-    pendingCreateKey = `manual-${crypto.randomUUID()}`;
-    $("#create-recipient").value = "";
-    $("#create-sender").value = "";
-    $("#create-birthday").value = "";
-    $("#create-error").textContent = "";
-    $("#create-modal").showModal();
-  }
-
   async function createProject() {
-    const button = $("#create-project");
+    const button = $("#generate-project");
+    if (!pendingCreateKey) pendingCreateKey = `manual-${crypto.randomUUID()}`;
     button.disabled = true;
-    button.textContent = "Membuat project...";
-    $("#create-error").textContent = "";
-    const initial = window.GiftProject.emptyProject("pending-project");
-    initial.identity.recipient = $("#create-recipient").value.trim();
-    initial.identity.sender = $("#create-sender").value.trim();
-    initial.identity.birthdayDate = $("#create-birthday").value;
+    button.textContent = "Generating...";
     try {
       const result = await adminRequest("/api/admin/projects", {
         method: "POST",
-        body: JSON.stringify({ idempotencyKey: pendingCreateKey, project: initial })
+        body: JSON.stringify({ idempotencyKey: pendingCreateKey })
       });
-      $("#create-modal").close();
-      $("#created-studio-url").value = result.studioUrl;
-      $("#open-created-studio").href = result.studioUrl;
+      pendingCreateKey = "";
+      const studioUrl = frontendUrl(result.studioUrl);
+      $("#created-studio-url").value = studioUrl;
+      $("#open-created-studio").href = studioUrl;
       $("#result-modal").showModal();
       await loadProjects({ silent: true });
     } catch (error) {
-      $("#create-error").textContent = error.message;
+      toast(error.message);
     } finally {
       button.disabled = false;
-      button.textContent = "Generate magic link";
+      button.innerHTML = "<span>+</span>Generate random link";
     }
   }
 
@@ -277,8 +283,7 @@
       searchTimer = window.setTimeout(() => loadProjects({ silent: true }), 320);
     });
     $("#status-filter").addEventListener("change", () => loadProjects({ silent: true }));
-    $("#open-create-modal").addEventListener("click", openCreateDialog);
-    $("#create-project").addEventListener("click", createProject);
+    $("#generate-project").addEventListener("click", createProject);
     $("#close-result").addEventListener("click", () => $("#result-modal").close());
     $("#copy-created-link").addEventListener("click", () => copyText($("#created-studio-url").value));
     $("#delete-confirmation").addEventListener("input", event => { $("#confirm-delete").disabled = event.target.value.trim() !== pendingDeleteId; });
