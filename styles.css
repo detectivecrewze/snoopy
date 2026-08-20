@@ -460,18 +460,6 @@ body[data-theme="dubu-duu"] .gift-card [data-gif="letterLogo"]::after {
   padding:clamp(2.3rem,5vw,4.2rem);
 }
 .wish-visual { position:relative; z-index:1; display:grid; min-height:250px; place-content:center; justify-items:center; isolation:isolate; }
-.wish-peony {
-  position:absolute;
-  z-index:4;
-  top:-86px;
-  right:-82px;
-  width:255px;
-  max-width:none;
-  opacity:.92;
-  transform:rotate(11deg);
-  filter:saturate(.88) contrast(.97) drop-shadow(0 8px 10px rgba(75,56,50,.12));
-  pointer-events:none;
-}
 .wish-gif-frame {
   position:relative;
   display:grid;
@@ -579,7 +567,6 @@ noscript { position:fixed; inset:auto 10px 10px; z-index:300; padding:1rem; colo
   .music-layout { grid-template-columns:1fr; }
   .note-card--wishes { min-height:0; grid-template-columns:1fr; gap:1.2rem; padding:2.2rem 2rem 2.5rem; text-align:center; }
   .wish-visual { width:min(100%,300px); min-height:175px; margin:auto; }
-  .wish-peony { top:-50px; right:-36px; width:160px; }
   .wish-gif-frame { width:126px; height:126px; padding:8px; }
   .gif-slot--feature { width:98px; height:98px; }
   .wish-visual-caption { margin-top:.8rem; padding:.22rem .6rem; transform:rotate(-1deg); }
@@ -655,7 +642,6 @@ noscript { position:fixed; inset:auto 10px 10px; z-index:300; padding:1rem; colo
   .wish-visual { width:min(100%,270px); min-height:145px; }
   .wish-gif-frame { width:108px; height:108px; padding:7px; box-shadow:4px 5px 0 color-mix(in srgb,var(--ink) 82%,transparent),inset 0 0 0 4px color-mix(in srgb,var(--paper) 76%,transparent); }
   .gif-slot--feature { width:84px; height:84px; }
-  .wish-peony { top:-38px; right:-27px; width:140px; opacity:.9; }
   .wish-visual-caption { margin-top:.65rem; font-size:.78rem; }
   .note-card h2 { max-width:310px; font-size:clamp(2.25rem,12vw,3.15rem); }
   .wish-divider { margin-block:.9rem; }

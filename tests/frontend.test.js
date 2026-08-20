@@ -29,7 +29,7 @@ test("gift production shell no longer loads customer config.js", () => {
   assert.match(gift, /\/shared\/project\.js/);
   assert.match(gift, /\/runtime-config\.js/);
   assert.doesNotMatch(gift, /gif-slot--memory-room/);
-  assert.match(gift, /assets\/photos\/peony\.webp/);
+  assert.doesNotMatch(gift, /assets\/photos\/peony|wish-peony/);
   assert.match(gift, /wish-gif-frame/);
   assert.doesNotMatch(gift, /id="letter-date"|class="letter-date"/);
   assert.doesNotMatch(read("app.js"), /#letter-date/);
