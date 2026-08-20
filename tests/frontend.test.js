@@ -126,7 +126,9 @@ test("admin dashboard includes secure login, generator, filters, and destructive
   assert.match(adminApp, /\/gift\/index\.html/);
   assert.match(adminApp, /params\.set\("project"/);
   assert.match(admin, /class="theme-pill"/);
+  assert.match(adminApp, /const Project = window\.GiftProject/);
   assert.match(adminApp, /Project\.normalizeThemeId/);
+  assert.match(adminApp, /crypto\?\.randomUUID\?\.\(\) \|\| Project\.makeId/);
 });
 
 test("runtime config does not contain a secret", () => {

@@ -3,6 +3,7 @@
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const Project = window.GiftProject;
   const DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
   const secretKey = "snoopy-admin:secret";
   let adminSecret = sessionStorage.getItem(secretKey) || "";
@@ -209,7 +210,10 @@
 
   async function createProject() {
     const button = $("#generate-project");
-    if (!pendingCreateKey) pendingCreateKey = `manual-${crypto.randomUUID()}`;
+    if (!pendingCreateKey) {
+      const randomPart = globalThis.crypto?.randomUUID?.() || Project.makeId("request");
+      pendingCreateKey = `manual-${randomPart}`;
+    }
     button.disabled = true;
     button.textContent = "Generating...";
     try {
@@ -296,6 +300,10 @@
   }
 
   async function initialize() {
+    if (!Project) {
+      showLogin("Komponen project belum berhasil dimuat. Silakan refresh halaman.");
+      return;
+    }
     bindEvents();
     if (!adminSecret) return showLogin();
     showDashboard();
