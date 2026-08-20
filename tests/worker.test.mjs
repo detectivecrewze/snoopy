@@ -200,6 +200,22 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
   assert.equal(inbox.payload.wishes.length, 2);
   assert.match(inbox.payload.wishes.map(item => item.wish).join(" "), /impianku/);
 
+  const unauthorizedDelete = await call(env, `/api/wishes/${projectId}/${firstWish.payload.id}`, { method: "DELETE" });
+  assert.equal(unauthorizedDelete.response.status, 401);
+
+  const forbiddenDelete = await call(env, `/api/wishes/${projectId}/${firstWish.payload.id}`, { method: "DELETE", token: "invalid-token" });
+  assert.equal(forbiddenDelete.response.status, 403);
+
+  const deleteFirst = await call(env, `/api/wishes/${projectId}/${firstWish.payload.id}`, { method: "DELETE", token: editToken });
+  assert.equal(deleteFirst.response.status, 200);
+  assert.equal(deleteFirst.payload.deleted, true);
+  assert.equal(deleteFirst.payload.wishId, firstWish.payload.id);
+
+  const inboxAfterDelete = await call(env, `/api/wishes/${projectId}`, { token: editToken });
+  assert.equal(inboxAfterDelete.response.status, 200);
+  assert.equal(inboxAfterDelete.payload.wishes.length, 1);
+  assert.equal(inboxAfterDelete.payload.wishes[0].id, secondWish.payload.id);
+
   const adminList = await call(env, "/api/admin/projects", { token: env.ADMIN_SECRET });
   assert.equal(adminList.response.status, 200);
   assert.equal(adminList.payload.stats.published, 1);

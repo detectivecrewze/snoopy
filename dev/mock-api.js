@@ -74,6 +74,13 @@
       const wishes = JSON.parse(localStorage.getItem(wishesKey(id)) || "[]");
       return wait({ wishes, mock: true });
     },
+    async deleteWish(id, token, wishId) {
+      requireToken(token);
+      const wishes = JSON.parse(localStorage.getItem(wishesKey(id)) || "[]");
+      const nextWishes = wishes.filter(entry => entry.id !== wishId);
+      localStorage.setItem(wishesKey(id), JSON.stringify(nextWishes));
+      return wait({ deleted: true, wishId, mock: true });
+    },
     async submitWish(id, wish, recipient) {
       const wishes = JSON.parse(localStorage.getItem(wishesKey(id)) || "[]");
       const entry = { id: root.GiftProject.makeId("wish"), wish, recipient, createdAt: new Date().toISOString() };

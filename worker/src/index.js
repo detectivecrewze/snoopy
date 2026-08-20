@@ -401,6 +401,21 @@ async function handleGetWishes(request, env, projectId) {
   return json(request, env, { wishes, cursor: listed.list_complete ? null : listed.cursor }, 200, { "Cache-Control": "no-store" });
 }
 
+async function handleDeleteWish(request, env, projectId, wishId) {
+  const record = await requireProject(env, projectId);
+  if (record.status === "archived") throw new HttpError(410, "Project sedang diarsipkan.");
+  await authorizeProject(request, env, record, true);
+  const targetId = String(wishId || "").trim();
+  if (!targetId) throw new HttpError(400, "Wish ID wajib disertakan.");
+  const prefix = `${WISH_PREFIX}${projectId}:`;
+  const listed = await env.GIFT_KV.list({ prefix, limit: 1000 });
+  const matchingKey = listed.keys.find(key => key.name.endsWith(`:${targetId}`));
+  if (matchingKey) {
+    await env.GIFT_KV.delete(matchingKey.name);
+  }
+  return json(request, env, { deleted: true, wishId: targetId, projectId }, 200, { "Cache-Control": "no-store" });
+}
+
 async function adminProjectSummary(env, record) {
   const editToken = await deriveEditToken(env, record.projectId);
   const tokenMatches = record.auth?.editTokenHash && constantTimeEqual(await sha256(editToken), record.auth.editTokenHash);
@@ -543,6 +558,8 @@ async function route(request, env) {
   if (request.method === "PUT" && match) return handleSaveStudio(request, env, decodeURIComponent(match[1]).toLowerCase());
   if (request.method === "POST" && path === "/api/upload") return handleUpload(request, env);
   if (request.method === "POST" && path === "/api/wishes") return handleSubmitWish(request, env);
+  match = path.match(/^\/api\/wishes\/([^/]+)\/([^/]+)$/);
+  if (request.method === "DELETE" && match) return handleDeleteWish(request, env, decodeURIComponent(match[1]).toLowerCase(), decodeURIComponent(match[2]));
   match = path.match(/^\/api\/wishes\/([^/]+)$/);
   if (request.method === "GET" && match) return handleGetWishes(request, env, decodeURIComponent(match[1]).toLowerCase());
   if (request.method === "GET" && path === "/api/admin/projects") return handleAdminListProjects(request, env);

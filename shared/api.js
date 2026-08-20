@@ -104,6 +104,14 @@
         : jsonRequest(`/api/wishes/${encodeURIComponent(this.projectId)}`, { headers: tokenHeaders(this.token) });
     }
 
+    deleteWish(wishId) {
+      if (this.mock) return this.mock.deleteWish(this.projectId, this.token, wishId);
+      return jsonRequest(`/api/wishes/${encodeURIComponent(this.projectId)}/${encodeURIComponent(wishId)}`, {
+        method: "DELETE",
+        headers: tokenHeaders(this.token)
+      });
+    }
+
     submitWish(wish, recipient) {
       return this.mock
         ? this.mock.submitWish(this.projectId, wish, recipient)

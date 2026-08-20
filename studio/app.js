@@ -70,6 +70,8 @@
   let qrPaletteKey = "berry";
   let studioReady = false;
   let pendingDeleteMediaId = "";
+  let pendingDeleteWishId = "";
+  let pendingDeleteWishNode = null;
   let photoCropper = null;
   let pendingPhotoCrop = null;
   let cropZoomValue = 0;
@@ -893,6 +895,16 @@
       wishes.forEach(entry => {
         const note = document.createElement("article");
         note.className = "wish-note";
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "wish-delete-button";
+        deleteBtn.setAttribute("aria-label", "Hapus catatan wish");
+        deleteBtn.setAttribute("title", "Hapus wish");
+        deleteBtn.textContent = "×";
+        deleteBtn.addEventListener("click", event => {
+          event.stopPropagation();
+          requestDeleteWish(entry.id, entry.wish, note);
+        });
         const quote = document.createElement("blockquote");
         quote.textContent = entry.wish;
         const footer = document.createElement("footer");
@@ -902,13 +914,61 @@
         time.dateTime = entry.createdAt || "";
         time.textContent = entry.createdAt ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.createdAt)) : "Baru saja";
         footer.append(name, time);
-        note.append(quote, footer);
+        note.append(deleteBtn, quote, footer);
         inbox.appendChild(note);
       });
     } catch (error) {
       inbox.innerHTML = `<div class="empty-inbox"><strong>Inbox belum dapat dimuat</strong><p>${escapeHtml(error.message)}</p></div>`;
     } finally {
       inbox.removeAttribute("aria-busy");
+    }
+  }
+
+  function requestDeleteWish(wishId, wishText, noteElement) {
+    if (!wishId) return;
+    pendingDeleteWishId = wishId;
+    pendingDeleteWishNode = noteElement || null;
+    const previewText = String(wishText || "").trim();
+    $("#delete-wish-preview").textContent = previewText ? `"${previewText.slice(0, 60)}${previewText.length > 60 ? "..." : ""}"` : "Pesan wish";
+    const dialog = $("#delete-wish-dialog");
+    if (typeof dialog.showModal === "function") dialog.showModal();
+  }
+
+  function closeDeleteWishDialog() {
+    pendingDeleteWishId = "";
+    pendingDeleteWishNode = null;
+    const dialog = $("#delete-wish-dialog");
+    if (dialog.open) dialog.close();
+  }
+
+  async function confirmDeleteWish() {
+    const wishId = pendingDeleteWishId;
+    const node = pendingDeleteWishNode;
+    if (!wishId) return closeDeleteWishDialog();
+    const confirmButton = $("#confirm-delete-wish");
+    confirmButton.disabled = true;
+    confirmButton.textContent = "Menghapus...";
+    try {
+      await api.deleteWish(wishId);
+      closeDeleteWishDialog();
+      if (node) {
+        node.classList.add("is-removing");
+        window.setTimeout(() => {
+          node.remove();
+          const inbox = $("#wish-inbox");
+          if (inbox && !inbox.querySelector(".wish-note")) {
+            inbox.innerHTML = '<div class="empty-inbox"><strong>Belum ada wish</strong><p>Nanti pesan pertama akan muncul seperti secarik catatan kecil di sini.</p></div>';
+          }
+        }, 250);
+      } else {
+        loadWishes();
+      }
+    } catch (error) {
+      alert(`Gagal menghapus wish: ${error.message}`);
+      closeDeleteWishDialog();
+    } finally {
+      confirmButton.disabled = false;
+      confirmButton.textContent = "Ya, hapus wish";
     }
   }
 
@@ -1168,6 +1228,13 @@
       if (event.target === event.currentTarget) closeDeleteMediaDialog();
     });
     $("#delete-media-dialog").addEventListener("close", () => { pendingDeleteMediaId = ""; });
+    $("#close-delete-wish").addEventListener("click", closeDeleteWishDialog);
+    $("#cancel-delete-wish").addEventListener("click", closeDeleteWishDialog);
+    $("#confirm-delete-wish").addEventListener("click", confirmDeleteWish);
+    $("#delete-wish-dialog").addEventListener("click", event => {
+      if (event.target === event.currentTarget) closeDeleteWishDialog();
+    });
+    $("#delete-wish-dialog").addEventListener("close", () => { pendingDeleteWishId = ""; pendingDeleteWishNode = null; });
     $("#close-photo-crop").addEventListener("click", closePhotoCropper);
     $("#cancel-photo-crop").addEventListener("click", closePhotoCropper);
     $("#confirm-photo-crop").addEventListener("click", confirmPhotoCrop);
