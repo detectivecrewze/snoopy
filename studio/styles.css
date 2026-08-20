@@ -78,7 +78,7 @@ button { color: inherit; }
 .field { position: relative; display: grid; align-content: start; gap: 7px; min-width: 0; }
 .field--wide { grid-column: 1 / -1; }
 .field > span { font: 700 .75rem var(--display); letter-spacing: .025em; }
-.field input, .field textarea, .field select, .copy-row input { width: 100%; border: 2px solid var(--ink); border-radius: 10px; outline: 0; color: var(--ink); background: #fffdf8; box-shadow: 3px 4px 0 var(--ink); }
+.field input, .field textarea, .field select, .copy-row input { width: 100%; min-width: 0; max-width: 100%; border: 2px solid var(--ink); border-radius: 10px; outline: 0; color: var(--ink); background: #fffdf8; box-shadow: 3px 4px 0 var(--ink); }
 .field input, .field select { min-height: 48px; padding: .7rem .85rem; }
 .field textarea { resize: vertical; padding: .8rem .9rem; font: 600 1.08rem/1.4 var(--hand); }
 .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--blue-dark); box-shadow: 3px 4px 0 var(--blue-dark), 0 0 0 4px rgba(147,200,236,.3); }
@@ -304,6 +304,8 @@ button { color: inherit; }
   .step-heading h1 { font-size: clamp(2rem, 10vw, 3.1rem); }
   .step-heading--with-action { align-items: start; flex-direction: column; }
   .paper-form, .letter-editor { padding: 18px 14px; box-shadow: 5px 6px 0 var(--ink); }
+  .field input[type="date"] { display:block; overflow:hidden; }
+  .field input[type="date"]::-webkit-date-and-time-value { width:100%; min-width:0; text-align:left; }
   .two-columns { grid-template-columns: 1fr; }
   .theme-grid { grid-template-columns: 1fr; }
   .wish-presets { grid-template-columns: 1fr; }
