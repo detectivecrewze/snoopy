@@ -278,8 +278,24 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function currentGalleryItem(itemId) {
-    return draft.gallery.find(item => item.id === itemId) || null;
+  function currentGalleryItem(itemId, node) {
+    if (itemId) {
+      const found = draft.gallery.find(item => item.id === itemId);
+      if (found) return found;
+    }
+    if (node) {
+      const nodeId = node.dataset?.galleryId;
+      if (nodeId) {
+        const found = draft.gallery.find(item => item.id === nodeId);
+        if (found) return found;
+      }
+      const editor = $("#gallery-editor");
+      if (editor) {
+        const index = Array.from(editor.children).indexOf(node);
+        if (index >= 0 && draft.gallery[index]) return draft.gallery[index];
+      }
+    }
+    return null;
   }
 
   function requestDeleteGalleryItem(itemId, displayIndex) {
@@ -495,16 +511,29 @@
   async function uploadFinalGalleryMedia(file, isVideo, itemId, node) {
     const badge = $(".uploading-badge", node);
     const errorBox = $(".photo-upload-error", node);
-    badge.hidden = false;
-    badge.textContent = "Mengunggah...";
-    errorBox.hidden = true;
-    errorBox.textContent = "";
+    if (badge) {
+      badge.hidden = false;
+      badge.textContent = "Mengunggah...";
+    }
+    if (errorBox) {
+      errorBox.hidden = true;
+      errorBox.textContent = "";
+    }
     setError("gallery", "");
     setSaveState("saving", "Mengunggah media...");
     try {
       const result = await api.upload(file, isVideo ? "video" : "photo");
-      const current = currentGalleryItem(itemId);
-      if (!current) throw new Error("Slot media sudah berubah. Tambahkan kembali foto atau videonya.");
+      let current = currentGalleryItem(itemId, node);
+      if (!current) {
+        const editor = $("#gallery-editor");
+        const nodeIndex = node && editor ? Array.from(editor.children).indexOf(node) : -1;
+        if (nodeIndex >= 0 && draft.gallery[nodeIndex]) {
+          current = draft.gallery[nodeIndex];
+        } else if (draft.gallery.length > 0) {
+          current = draft.gallery[draft.gallery.length - 1];
+        }
+      }
+      if (!current) throw new Error("Slot media tidak ditemukan. Silakan tambahkan slot foto baru.");
       current.mediaType = isVideo ? "video" : "image";
       current.mediaUrl = result.url;
       current.imageUrl = isVideo ? "" : result.url;
@@ -513,12 +542,14 @@
     } catch (error) {
       const message = error.message || "Media belum berhasil diunggah.";
       console.error("Gallery media upload failed", { message, status: error.status, response: error.payload });
-      errorBox.textContent = `Upload gagal: ${message}`;
-      errorBox.hidden = false;
+      if (errorBox) {
+        errorBox.textContent = `Upload gagal: ${message}`;
+        errorBox.hidden = false;
+      }
       setError("gallery", message);
       setSaveState("error", "Media belum terunggah");
     } finally {
-      badge.hidden = true;
+      if (badge) badge.hidden = true;
     }
   }
 
