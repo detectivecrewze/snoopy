@@ -185,7 +185,7 @@
 
   function updatePlayerState() {
     const playing = !audio.paused && !audio.ended;
-    $("#play-icon").textContent = playing ? "Ⅱ" : "▶";
+    $("#play-button").classList.toggle("is-playing", playing);
     $("#play-button").setAttribute("aria-label", playing ? "Pause song" : "Play song");
     $("#record").classList.toggle("is-playing", playing);
   }

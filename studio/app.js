@@ -70,6 +70,10 @@
   let qrPaletteKey = "berry";
   let studioReady = false;
   let pendingDeleteMediaId = "";
+  let photoCropper = null;
+  let pendingPhotoCrop = null;
+  let cropZoomValue = 0;
+  let cropRotation = 0;
   let hasUnpublishedChanges = false;
   let workerSupportsThemes = true;
 
@@ -265,6 +269,7 @@
     $("#next-step").hidden = currentStep === 7;
     $("#mobile-step-label").textContent = `Langkah ${currentStep} dari 7`;
     $("#mobile-progress-bar").style.width = `${(currentStep / 7) * 100}%`;
+    $("#add-photo-floating").hidden = currentStep !== 3;
     if (currentStep === 6) loadWishes();
     if (currentStep === 7) {
       sendPreview();
@@ -347,109 +352,157 @@
       $(".remove-photo", node).addEventListener("click", () => {
         requestDeleteGalleryItem(itemId, index);
       });
-      $(".gallery-file", node).addEventListener("change", event => uploadGalleryMedia(event.target.files[0], itemId, node));
+      $(".gallery-file", node).addEventListener("change", event => {
+        const file = event.target.files[0];
+        event.target.value = "";
+        uploadGalleryMedia(file, itemId, node);
+      });
       editor.appendChild(node);
     });
-    $("#add-photo").disabled = draft.gallery.length >= Project.MAX_GALLERY_ITEMS;
+    const galleryFull = draft.gallery.length >= Project.MAX_GALLERY_ITEMS;
+    $("#add-photo").disabled = galleryFull;
+    $("#add-photo-floating").disabled = galleryFull;
   }
 
-  function loadPhoto(file) {
-    return new Promise((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const image = new Image();
-      const timeout = window.setTimeout(() => {
-        cleanup();
-        reject(new Error("Browser terlalu lama membaca foto. Coba gunakan file JPG, PNG, atau WEBP lain."));
-      }, 15000);
-      const cleanup = () => {
-        window.clearTimeout(timeout);
-        image.onload = null;
-        image.onerror = null;
-      };
-      image.onload = () => {
-        cleanup();
-        resolve({ image, objectUrl });
-      };
-      image.onerror = () => {
-        cleanup();
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("File foto tidak dapat dibaca oleh browser."));
-      };
-      image.src = objectUrl;
-    });
+  function galleryUploadError(node, message) {
+    const errorBox = $(".photo-upload-error", node);
+    errorBox.textContent = `Upload gagal: ${message}`;
+    errorBox.hidden = false;
+    setError("gallery", message);
   }
 
-  async function compressPhoto(file) {
-    const extension = file?.name?.split(".").pop()?.toLowerCase() || "";
-    const allowedType = ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file?.type?.toLowerCase());
-    const allowedExtension = ["jpg", "jpeg", "png", "webp"].includes(extension);
-    if (!file || (!allowedType && !allowedExtension)) throw new Error("Gunakan foto JPG, PNG, atau WEBP.");
-    if (file.size > 8 * 1024 * 1024) throw new Error("Ukuran foto maksimal 8 MB.");
-    const { image, objectUrl } = await loadPhoto(file);
-    const width = image.naturalWidth;
-    const height = image.naturalHeight;
-    const scale = Math.min(1, 1600 / Math.max(width, height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(width * scale));
-    canvas.height = Math.max(1, Math.round(height * scale));
-    canvas.getContext("2d", { alpha: false }).drawImage(image, 0, 0, canvas.width, canvas.height);
-    URL.revokeObjectURL(objectUrl);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", .86));
-    if (!blob) throw new Error("Foto belum berhasil dikompresi.");
-    return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}.webp`, { type: "image/webp" });
+  function closePhotoCropper() {
+    if (photoCropper) photoCropper.destroy();
+    photoCropper = null;
+    if (pendingPhotoCrop?.objectUrl) URL.revokeObjectURL(pendingPhotoCrop.objectUrl);
+    pendingPhotoCrop = null;
+    cropZoomValue = 0;
+    cropRotation = 0;
+    $("#cropper-source").removeAttribute("src");
+    $("#cropper-error").hidden = true;
+    $("#cropper-zoom").value = "0";
+    const dialog = $("#photo-crop-dialog");
+    if (dialog.open) dialog.close();
   }
 
-  async function uploadGalleryMedia(file, itemId, node) {
-    if (!file) return;
-    const extension = file.name.split(".").pop()?.toLowerCase() || "";
-    const imageExtensions = ["jpg", "jpeg", "png", "webp"];
-    const videoExtensions = ["mp4", "webm", "mov"];
-    const isVideo = ["video/mp4", "video/webm", "video/quicktime"].includes(file.type.toLowerCase()) || videoExtensions.includes(extension);
-    const isImage = ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type.toLowerCase()) || imageExtensions.includes(extension);
-    if (!isVideo && !isImage) {
-      const errorBox = $(".photo-upload-error", node);
-      errorBox.textContent = "Upload gagal: gunakan foto JPG, PNG, WEBP atau video MP4, WEBM, MOV.";
-      errorBox.hidden = false;
-      return;
+  async function openPhotoCropper(file, itemId, node) {
+    const CropperConstructor = window.Cropper?.default;
+    if (typeof CropperConstructor !== "function") return galleryUploadError(node, "Editor foto belum termuat. Refresh halaman lalu coba lagi.");
+    if (file.size > 8 * 1024 * 1024) return galleryUploadError(node, "ukuran foto maksimal 8 MB.");
+    closePhotoCropper();
+    const source = $("#cropper-source");
+    const objectUrl = URL.createObjectURL(file);
+    pendingPhotoCrop = { file, itemId, node, objectUrl };
+    source.src = objectUrl;
+    $("#photo-crop-dialog").showModal();
+    try {
+      await source.decode();
+      if (!pendingPhotoCrop || pendingPhotoCrop.objectUrl !== objectUrl) return;
+      photoCropper = new CropperConstructor(source, { container: $("#cropper-stage") });
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const selection = photoCropper.getCropperSelection();
+      if (!selection) throw new Error("Area crop belum siap.");
+      selection.aspectRatio = 4 / 3;
+      selection.initialAspectRatio = 4 / 3;
+      selection.initialCoverage = .82;
+      selection.$reset();
+      await applyDefaultCropZoom();
+    } catch (error) {
+      $("#cropper-error").textContent = error.message || "Foto belum dapat dibuka di editor.";
+      $("#cropper-error").hidden = false;
     }
-    if (isVideo && file.size > 20 * 1024 * 1024) {
-      const errorBox = $(".photo-upload-error", node);
-      errorBox.textContent = "Upload gagal: ukuran video maksimal 20 MB.";
-      errorBox.hidden = false;
-      return;
+  }
+
+  async function applyDefaultCropZoom() {
+    if (!photoCropper) return;
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    const image = photoCropper.getCropperImage();
+    const selection = photoCropper.getCropperSelection();
+    if (!image || !selection) return;
+    const imageRect = image.getBoundingClientRect();
+    const selectionRect = selection.getBoundingClientRect();
+    const coverScale = Math.max(
+      selectionRect.width / Math.max(1, imageRect.width),
+      selectionRect.height / Math.max(1, imageRect.height)
+    );
+    const zoomAmount = Math.min(1, Math.max(.25, coverScale - 1 + .04));
+    image.$zoom(zoomAmount);
+    cropZoomValue = Math.round(zoomAmount * 100);
+    $("#cropper-zoom").value = String(cropZoomValue);
+  }
+
+  async function resetPhotoCropper() {
+    if (!photoCropper) return;
+    photoCropper.getCropperImage()?.$resetTransform();
+    const selection = photoCropper.getCropperSelection();
+    if (selection) {
+      selection.aspectRatio = 4 / 3;
+      selection.initialAspectRatio = 4 / 3;
+      selection.initialCoverage = .82;
+      selection.$reset();
     }
+    cropZoomValue = 0;
+    cropRotation = 0;
+    $("#cropper-zoom").value = "0";
+    await applyDefaultCropZoom();
+  }
+
+  async function confirmPhotoCrop() {
+    if (!photoCropper || !pendingPhotoCrop) return;
+    const confirmButton = $("#confirm-photo-crop");
+    const errorBox = $("#cropper-error");
+    confirmButton.disabled = true;
+    confirmButton.textContent = "Menyiapkan foto...";
+    errorBox.hidden = true;
+    try {
+      const selection = photoCropper.getCropperSelection();
+      if (!selection) throw new Error("Area crop belum siap.");
+      const source = $("#cropper-source");
+      const cropperImage = photoCropper.getCropperImage();
+      const swapDimensions = Math.abs(cropRotation / 90) % 2 === 1;
+      const naturalWidth = swapDimensions ? source.naturalHeight : source.naturalWidth;
+      const naturalHeight = swapDimensions ? source.naturalWidth : source.naturalHeight;
+      const baseWidth = Math.max(1, swapDimensions ? cropperImage?.clientHeight || 1 : cropperImage?.clientWidth || 1);
+      const [matrixA = 1, matrixB = 0] = cropperImage?.$getTransform?.() || [];
+      const transformScale = Math.max(.0001, Math.hypot(matrixA, matrixB));
+      const selectedSourceWidth = selection.width * (naturalWidth / baseWidth) / transformScale;
+      const largestCropWidth = Math.max(1, Math.min(naturalWidth, naturalHeight * (4 / 3), selectedSourceWidth));
+      const outputWidth = Math.max(1, Math.min(1600, Math.round(largestCropWidth)));
+      const outputHeight = Math.max(1, Math.min(1200, Math.round(outputWidth * (3 / 4))));
+      const canvas = await selection.$toCanvas({
+        width: outputWidth,
+        height: outputHeight,
+        beforeDraw(context, outputCanvas) {
+          context.fillStyle = "#fffdf8";
+          context.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+        }
+      });
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", .86));
+      if (!blob) throw new Error("Hasil crop belum dapat dibuat.");
+      const { file, itemId, node } = pendingPhotoCrop;
+      const croppedFile = new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}-cropped.webp`, { type: "image/webp" });
+      closePhotoCropper();
+      await uploadFinalGalleryMedia(croppedFile, false, itemId, node);
+    } catch (error) {
+      errorBox.textContent = error.message || "Foto belum berhasil dipotong.";
+      errorBox.hidden = false;
+    } finally {
+      confirmButton.disabled = false;
+      confirmButton.textContent = "Gunakan foto";
+    }
+  }
+
+  async function uploadFinalGalleryMedia(file, isVideo, itemId, node) {
     const badge = $(".uploading-badge", node);
     const errorBox = $(".photo-upload-error", node);
-    const image = $("img", node);
-    const video = $("video", node);
-    const upload = $(".polaroid-upload", node);
-    const previewUrl = URL.createObjectURL(file);
-    const previewMedia = isVideo ? video : image;
-    const hiddenMedia = isVideo ? image : video;
-    hiddenMedia.hidden = true;
-    hiddenMedia.removeAttribute("src");
-    previewMedia.src = previewUrl;
-    previewMedia.hidden = false;
-    upload.classList.add("has-image");
-    $(".polaroid-upload label span", node).textContent = "Ganti media";
-    const readyEvent = isVideo ? "loadeddata" : "load";
-    previewMedia.addEventListener(readyEvent, () => URL.revokeObjectURL(previewUrl), { once: true });
-    previewMedia.addEventListener("error", () => URL.revokeObjectURL(previewUrl), { once: true });
-    if (isVideo) video.play().catch(() => {});
     badge.hidden = false;
-    badge.textContent = isVideo ? "Membaca video..." : "Membaca foto...";
+    badge.textContent = "Mengunggah...";
     errorBox.hidden = true;
     errorBox.textContent = "";
     setError("gallery", "");
     setSaveState("saving", "Mengunggah media...");
     try {
-      const expectedVideoType = extension === "webm" ? "video/webm" : extension === "mov" ? "video/quicktime" : "video/mp4";
-      const normalizedVideo = isVideo && file.type !== expectedVideoType
-        ? new File([file], file.name, { type: expectedVideoType })
-        : file;
-      const optimized = isVideo ? normalizedVideo : await compressPhoto(file);
-      badge.textContent = "Mengunggah...";
-      const result = await api.upload(optimized, isVideo ? "video" : "photo");
+      const result = await api.upload(file, isVideo ? "video" : "photo");
       const current = currentGalleryItem(itemId);
       if (!current) throw new Error("Slot media sudah berubah. Tambahkan kembali foto atau videonya.");
       current.mediaType = isVideo ? "video" : "image";
@@ -467,6 +520,30 @@
     } finally {
       badge.hidden = true;
     }
+  }
+
+  async function uploadGalleryMedia(file, itemId, node) {
+    if (!file) return;
+    const extension = file.name.split(".").pop()?.toLowerCase() || "";
+    const imageExtensions = ["jpg", "jpeg", "png", "webp"];
+    const videoExtensions = ["mp4", "webm", "mov"];
+    const fileType = (file.type || "").toLowerCase();
+    const isVideo = ["video/mp4", "video/webm", "video/quicktime"].includes(fileType) || videoExtensions.includes(extension);
+    const isImage = ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(fileType) || imageExtensions.includes(extension);
+    if (!isVideo && !isImage) return galleryUploadError(node, "gunakan foto JPG, PNG, WEBP atau video MP4, WEBM, MOV.");
+    if (isVideo && file.size > 20 * 1024 * 1024) return galleryUploadError(node, "ukuran video maksimal 20 MB.");
+    if (isImage) return openPhotoCropper(file, itemId, node);
+    const expectedVideoType = extension === "webm" ? "video/webm" : extension === "mov" ? "video/quicktime" : "video/mp4";
+    const normalizedVideo = file.type === expectedVideoType ? file : new File([file], file.name, { type: expectedVideoType });
+    await uploadFinalGalleryMedia(normalizedVideo, true, itemId, node);
+  }
+
+  function addGalleryItem() {
+    if (draft.gallery.length >= Project.MAX_GALLERY_ITEMS) return;
+    draft.gallery.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", imageUrl: "", title: "", story: "" });
+    renderGallery();
+    scheduleSave();
+    requestAnimationFrame(() => $("#gallery-editor .gallery-item:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }));
   }
 
   function normalizeCatalog(payload) {
@@ -525,7 +602,11 @@
       preview.type = "button";
       preview.className = "catalog-preview";
       preview.dataset.previewTrack = track.id;
-      preview.textContent = previewTrackId === track.id && !$("#studio-audio").paused ? "Ⅱ Pause" : "▶ Preview";
+      preview.append(
+        Object.assign(document.createElement("span"), { className: "media-icon", ariaHidden: "true" }),
+        Object.assign(document.createElement("span"), { className: "media-control-label" })
+      );
+      setPlaybackButton(preview, previewTrackId === track.id && !$("#studio-audio").paused, true);
       preview.addEventListener("click", () => previewCatalogTrack(track));
       const select = document.createElement("button");
       select.type = "button";
@@ -631,6 +712,15 @@
     return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
   }
 
+  function setPlaybackButton(button, playing, showLabel = false) {
+    button.classList.toggle("is-playing", playing);
+    button.setAttribute("aria-label", playing ? "Jeda preview lagu" : "Putar preview lagu");
+    if (showLabel) {
+      const label = $(".media-control-label", button);
+      if (label) label.textContent = playing ? "Pause" : "Preview";
+    }
+  }
+
   function showPlayerTrack(track) {
     const audio = $("#studio-audio");
     audio.pause();
@@ -657,7 +747,7 @@
     $("#studio-current-time").textContent = "0:00";
     $("#studio-duration").textContent = "0:00";
     $("#studio-seek").value = "0";
-    $("#studio-audio-toggle").textContent = "▶";
+    setPlaybackButton($("#studio-audio-toggle"), false);
   }
 
   function updateMusicPreview() {
@@ -687,7 +777,7 @@
   function syncCatalogPlaybackButtons() {
     const audio = $("#studio-audio");
     $$('[data-preview-track]').forEach(button => {
-      button.textContent = button.dataset.previewTrack === previewTrackId && !audio.paused ? "Ⅱ Pause" : "▶ Preview";
+      setPlaybackButton(button, button.dataset.previewTrack === previewTrackId && !audio.paused, true);
     });
   }
 
@@ -951,7 +1041,7 @@
     if (!workerSupportsThemes && draft.themeId !== Project.DEFAULT_THEME_ID) {
       updateBackendThemeWarning();
       const box = $("#publish-errors");
-      box.textContent = "Tema Dubu & Duu belum bisa dipublish karena Worker production belum schema v3.";
+      box.textContent = "Tema Dubu & Dudu belum bisa dipublish karena Worker production belum schema v3.";
       box.hidden = false;
       return;
     }
@@ -1038,12 +1128,8 @@
     $("#next-step").addEventListener("click", () => goToStep(currentStep + 1));
     $("#previous-step").addEventListener("click", () => goToStep(currentStep - 1, { skipValidation: true }));
     $$("#step-list button").forEach(button => button.addEventListener("click", () => goToStep(Number(button.closest("li").dataset.stepTarget), { skipValidation: true })));
-    $("#add-photo").addEventListener("click", () => {
-      if (draft.gallery.length >= Project.MAX_GALLERY_ITEMS) return;
-      draft.gallery.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", imageUrl: "", title: "", story: "" });
-      renderGallery();
-      scheduleSave();
-    });
+    $("#add-photo").addEventListener("click", addGalleryItem);
+    $("#add-photo-floating").addEventListener("click", addGalleryItem);
     $("#close-delete-media").addEventListener("click", closeDeleteMediaDialog);
     $("#cancel-delete-media").addEventListener("click", closeDeleteMediaDialog);
     $("#confirm-delete-media").addEventListener("click", confirmDeleteGalleryItem);
@@ -1051,6 +1137,29 @@
       if (event.target === event.currentTarget) closeDeleteMediaDialog();
     });
     $("#delete-media-dialog").addEventListener("close", () => { pendingDeleteMediaId = ""; });
+    $("#close-photo-crop").addEventListener("click", closePhotoCropper);
+    $("#cancel-photo-crop").addEventListener("click", closePhotoCropper);
+    $("#confirm-photo-crop").addEventListener("click", confirmPhotoCrop);
+    $("#photo-crop-dialog").addEventListener("cancel", event => {
+      event.preventDefault();
+      closePhotoCropper();
+    });
+    $("#photo-crop-dialog").addEventListener("click", event => {
+      if (event.target === event.currentTarget) closePhotoCropper();
+    });
+    $$('[data-crop-action]').forEach(button => button.addEventListener("click", () => {
+      if (!photoCropper) return;
+      if (button.dataset.cropAction === "reset") return resetPhotoCropper();
+      const degrees = button.dataset.cropAction === "rotate-left" ? -90 : 90;
+      photoCropper.getCropperImage()?.$rotate(`${degrees}deg`);
+      cropRotation = (cropRotation + degrees) % 360;
+    }));
+    $("#cropper-zoom").addEventListener("input", event => {
+      if (!photoCropper) return;
+      const nextZoomValue = Number(event.target.value);
+      photoCropper.getCropperImage()?.$zoom((nextZoomValue - cropZoomValue) / 100);
+      cropZoomValue = nextZoomValue;
+    });
     $$('[data-warm-preset]').forEach(button => button.addEventListener("click", () => {
       $("#warm-message").value = WARM_PRESETS[button.dataset.warmPreset] || "";
       $("#warm-count").textContent = String($("#warm-message").value.length);
@@ -1082,11 +1191,11 @@
       try { audio.paused ? await audio.play() : audio.pause(); } catch (_) { setError("music", "Preview lagu belum dapat diputar."); }
     });
     $("#studio-audio").addEventListener("play", () => {
-      $("#studio-audio-toggle").textContent = "Ⅱ";
+      setPlaybackButton($("#studio-audio-toggle"), true);
       syncCatalogPlaybackButtons();
     });
     $("#studio-audio").addEventListener("pause", () => {
-      $("#studio-audio-toggle").textContent = "▶";
+      setPlaybackButton($("#studio-audio-toggle"), false);
       syncCatalogPlaybackButtons();
     });
     $("#studio-audio").addEventListener("loadedmetadata", event => {

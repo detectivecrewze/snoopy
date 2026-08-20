@@ -17,7 +17,7 @@ test("studio exposes seven wizard steps and dynamic runtime configuration", () =
   assert.match(studio, /id="gift-preview"/);
   assert.match(studio, /id="qr-code"/);
   assert.match(studioApp, /\/index\.html\?\$\{params\}/);
-  assert.match(studioApp, /Membaca foto/);
+  assert.match(studioApp, /openPhotoCropper/);
   assert.match(api, /timeoutMs: 60000/);
   assert.match(api, /Upload terlalu lama dan dihentikan/);
   assert.match(api, /getHealth\(\)/);
@@ -52,7 +52,7 @@ test("root landing page is isolated from gift runtime and links to the main stor
   assert.match(server, /requested = "gift\/index\.html"/);
 });
 
-test("Studio and shared renderer expose the Snoopy and Dubu & Duu theme system", () => {
+test("Studio and shared renderer expose the Snoopy and Dubu & Dudu theme system", () => {
   const studio = read("studio/index.html");
   const studioApp = read("studio/app.js");
   const giftApp = read("app.js");
@@ -74,6 +74,7 @@ test("Studio and shared renderer expose the Snoopy and Dubu & Duu theme system",
   assert.match(project, /"dubu-duu"/);
   assert.match(read("studio/styles.css"), /#publish-button\.is-live:disabled/);
   assert.match(read("styles.css"), /body\[data-theme="dubu-duu"\] \.gif-slot--home-sticker/);
+  assert.equal((read("styles.css").match(/body\[data-theme="snoopy"\] \.gift-card \[data-gif=/g) || []).length >= 8, true);
 });
 
 test("music catalog supports covers, selection, and audio preview", () => {
@@ -152,5 +153,39 @@ test("Vercel is forced to deploy the allowlisted static dist output", () => {
   assert.match(build, /assets\/data/);
   assert.match(build, /assets\/photos/);
   assert.match(build, /assets\/themes/);
+  assert.match(build, /assets\/vendor/);
   assert.doesNotMatch(build, /worker|tests|fixtures|server\.js|assets\/audio/);
+});
+
+test("Studio uses local cropper, CSS playback icons, and a Safari-safe date shell", () => {
+  const studio = read("studio/index.html");
+  const studioApp = read("studio/app.js");
+  const studioStyles = read("studio/styles.css");
+  const gift = read("gift/index.html");
+  const giftApp = read("app.js");
+  const giftStyles = read("styles.css");
+  assert.ok(fs.existsSync(path.join(root, "assets/vendor/cropperjs/cropper.min.js")));
+  assert.ok(fs.existsSync(path.join(root, "assets/vendor/cropperjs/LICENSE")));
+  assert.match(studio, /assets\/vendor\/cropperjs\/cropper\.min\.js/);
+  assert.match(studio, /id="photo-crop-dialog"/);
+  assert.match(studio, /id="add-photo-floating"/);
+  assert.match(studio, /class="date-input-shell"/);
+  assert.match(studioApp, /selection\.aspectRatio = 4 \/ 3/);
+  assert.match(studioApp, /applyDefaultCropZoom/);
+  assert.match(studioApp, /coverScale/);
+  assert.match(studioApp, /addGalleryItem/);
+  assert.match(studioApp, /selection\.\$toCanvas/);
+  assert.match(studioApp, /selectedSourceWidth/);
+  assert.match(studioApp, /Math\.min\(1600/);
+  assert.match(studioApp, /Math\.min\(1200/);
+  assert.match(studioApp, /canvas\.toBlob\(resolve, "image\/webp", \.86\)/);
+  assert.match(studioStyles, /\.date-input-shell \{[^}]*overflow:hidden/);
+  assert.match(studioStyles, /::-webkit-date-and-time-value/);
+  assert.match(studioStyles, /\.media-icon::before/);
+  assert.match(giftStyles, /\.play-button\.is-playing \.media-icon/);
+  assert.match(gift, /class="media-icon"/);
+  assert.match(studio, /Dubu &amp; Dudu/);
+  assert.match(read("shared/project.js"), /label: "Dubu & Dudu"/);
+  assert.match(read("shared/project.js"), /"dubu-duu"/);
+  for (const source of [studio, studioApp, gift, giftApp]) assert.doesNotMatch(source, /▶|Ⅱ|⏸/);
 });

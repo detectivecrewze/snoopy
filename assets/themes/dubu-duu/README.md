@@ -1,6 +1,6 @@
-# Dubu & Duu theme assets
+# Dubu & Dudu theme assets
 
-Folder ini disiapkan untuk paket karakter Dubu & Duu. Semua aset harus disimpan lokal dan dihubungkan melalui manifest `THEMES` di `shared/project.js`.
+Folder ini disiapkan untuk paket karakter Dubu & Dudu. Semua aset harus disimpan lokal dan dihubungkan melalui manifest `THEMES` di `shared/project.js`.
 
 Pemetaan aktif:
 

@@ -12,7 +12,7 @@ Dokumen ini adalah sumber konteks utama untuk agent yang melanjutkan pengembanga
 
 ## 1. Tujuan Produk
 
-Birthday Gift Studio adalah produk kado ulang tahun digital dengan satu renderer comic scrapbook dan pilihan tema Snoopy atau Dubu & Duu. Produk ini mengubah satu template statis menjadi sistem yang dapat dipakai berulang kali untuk banyak customer tanpa mengedit HTML secara manual.
+Birthday Gift Studio adalah produk kado ulang tahun digital dengan satu renderer comic scrapbook dan pilihan tema Snoopy atau Dubu & Dudu. Produk ini mengubah satu template statis menjadi sistem yang dapat dipakai berulang kali untuk banyak customer tanpa mengedit HTML secara manual.
 
 Produk memiliki tiga pengalaman utama:
 
@@ -52,7 +52,7 @@ Target akhirnya adalah project baru dapat dibuat otomatis sesudah pembayaran di 
 | Step 2 | Selesai | Cloudflare Worker, KV, R2, project API, upload, wish inbox, token hashing, CORS, dan idempotent project creation. |
 | Step 3 | Selesai | Dashboard `/admin`, generator manual, pencarian/filter, magic link, archive/restore, dan permanent delete. |
 | Step 4 | Selesai secara lokal | Automated tests dan browser QA untuk gift, Studio, admin shell, mobile responsiveness, route security, dan QR. |
-| Multi-theme v3 | Selesai | Schema v3, tujuh aset lokal Dubu & Duu, manifest sepuluh slot, selector Studio, live preview, palet dinamis, kompatibilitas v2, dan badge Admin sudah tersedia. |
+| Multi-theme v3 | Selesai | Schema v3, tujuh aset lokal Dubu & Dudu, manifest sepuluh slot, selector Studio, live preview, palet dinamis, kompatibilitas v2, dan badge Admin sudah tersedia. |
 | Root landing | Selesai | Landing satu halaman menampilkan dua tema dan CTA ke toko utama tanpa memuat gift runtime. |
 | Deployment | Belum | Binding, secrets, domain production, deploy Worker, dan deploy Vercel masih harus dilakukan. |
 | Pakasir | Belum | Endpoint internal sudah disiapkan, tetapi pemanggilan dari service Pakasir belum dibuat. |
@@ -146,7 +146,7 @@ snoopy-gift-standalone/
 ├── assets/
 │   ├── data/music.json        # Katalog lagu
 │   ├── gifs/                  # Aset tema Snoopy statis
-│   ├── themes/dubu-duu/       # Aset lokal Dubu & Duu per slot manifest
+│   ├── themes/dubu-duu/       # Aset lokal Dubu & Dudu per slot manifest
 │   ├── photos/                # Fixture development, bukan customer production
 │   └── audio/                 # Fixture development
 ├── fixtures/sample.json       # Fixture generik lokal; tidak menjadi fallback production
@@ -326,11 +326,11 @@ Schema saat ini adalah `schemaVersion: 3`. Schema v2 atau payload tanpa `themeId
 - `shared/project.js` menyimpan manifest `THEMES` yang berisi label, deskripsi, thumbnail, palet, alt text, dan sepuluh slot karakter.
 - Renderer gift hanya satu. Tema diterapkan melalui CSS custom properties serta `data-theme` pada body.
 - Slot asetnya adalah `welcome`, `wishWriting`, `wish`, `hug`, `cozy`, `memoriesLogo`, `dance`, `letterLogo`, `letter`, dan `finale`.
-- Slot Dubu & Duu yang belum tersedia menampilkan placeholder netral. Tidak ada fallback ke Snoopy.
+- Slot Dubu & Dudu yang belum tersedia menampilkan placeholder netral. Tidak ada fallback ke Snoopy.
 - Warna QR dipilih customer secara terpisah dan tidak diubah ketika tema gift diganti.
 - Untuk project published, autosave tema masuk ke studio draft. Gift publik baru berubah setelah Publish.
 - Step Preview menandai perubahan sebagai `CHANGES NOT LIVE`, menonaktifkan Copy/QR, dan meminta customer melakukan Publish terlebih dahulu.
-- Studio memeriksa `schemaVersion` dan `themeIds` dari `/api/health`; tema Dubu & Duu diblokir dengan pesan deployment jika Worker production masih lama.
+- Studio memeriksa `schemaVersion` dan `themeIds` dari `/api/health`; tema Dubu & Dudu diblokir dengan pesan deployment jika Worker production masih lama.
 
 ### Batas validasi server
 
@@ -789,9 +789,9 @@ Static dev server tidak mengimplementasikan admin API. Automated Worker tests me
 
 Vercel menambahkan `nosniff` dan referrer policy, tetapi belum memiliki CSP lengkap, Permissions-Policy, atau HSTS custom. CSP perlu mengakomodasi Worker API, R2 CDN, Google Fonts, dan QR library.
 
-### 15.13 Aset Dubu & Duu memakai beberapa slot berulang
+### 15.13 Aset Dubu & Dudu memakai beberapa slot berulang
 
-Saat ini tujuh file lokal Dubu & Duu dipakai untuk sepuluh slot. `cozy.webp`, `together.webp`, dan `celebrate.webp` sengaja digunakan ulang pada konteks yang berdekatan. Jika nanti tersedia variasi tambahan, ganti path slot terkait pada manifest `THEMES`. Jangan memakai hotlink dan jangan mengarahkan slot kosong ke GIF Snoopy.
+Saat ini tujuh file lokal Dubu & Dudu dipakai untuk sepuluh slot. `cozy.webp`, `together.webp`, dan `celebrate.webp` sengaja digunakan ulang pada konteks yang berdekatan. Jika nanti tersedia variasi tambahan, ganti path slot terkait pada manifest `THEMES`. Jangan memakai hotlink dan jangan mengarahkan slot kosong ke GIF Snoopy.
 
 ---
 
@@ -860,7 +860,7 @@ Release pertama dianggap siap dijual jika seluruh kondisi berikut terpenuhi di p
 - Customer dapat refresh Studio tanpa kehilangan token pada session yang sama.
 - Draft tersimpan setelah edit.
 - Project schema v2 tetap terbuka sebagai tema Snoopy tanpa migrasi KV manual.
-- Customer dapat mengganti Snoopy dan Dubu & Duu tanpa kehilangan isi gift.
+- Customer dapat mengganti Snoopy dan Dubu & Dudu tanpa kehilangan isi gift.
 - Gift published tidak berubah tema sampai customer menekan Publish.
 - Minimal satu foto dapat dikompresi dan di-upload.
 - MP3 dapat di-upload dan diputar dari gift.

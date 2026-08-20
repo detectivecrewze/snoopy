@@ -49,7 +49,7 @@
     }),
     "dubu-duu": Object.freeze({
       id: "dubu-duu",
-      label: "Dubu & Duu",
+      label: "Dubu & Dudu",
       description: "Warm pastel yang lembut dan cozy.",
       thumbnail: "/assets/themes/dubu-duu/welcome.webp",
       palette: Object.freeze({
@@ -70,16 +70,16 @@
         finale: "/assets/themes/dubu-duu/celebrate.webp"
       }),
       alt: Object.freeze({
-        welcome: "Dubu dan Duu membawa kejutan ulang tahun",
-        wishWriting: "Dubu dan Duu menemani menulis harapan",
-        wish: "Dubu dan Duu merayakan harapan yang terkirim",
-        hug: "Dubu dan Duu memberikan pelukan hangat",
-        dance: "Dubu dan Duu menari mengikuti musik",
-        cozy: "Dubu dan Duu bersantai bersama",
-        memoriesLogo: "Dubu dan Duu menjelajahi galeri",
-        letterLogo: "Dubu dan Duu menulis surat",
-        letter: "Dubu dan Duu menemani akhir surat",
-        finale: "Dubu dan Duu merayakan ulang tahun"
+        welcome: "Dubu dan Dudu membawa kejutan ulang tahun",
+        wishWriting: "Dubu dan Dudu menemani menulis harapan",
+        wish: "Dubu dan Dudu merayakan harapan yang terkirim",
+        hug: "Dubu dan Dudu memberikan pelukan hangat",
+        dance: "Dubu dan Dudu menari mengikuti musik",
+        cozy: "Dubu dan Dudu bersantai bersama",
+        memoriesLogo: "Dubu dan Dudu menjelajahi galeri",
+        letterLogo: "Dubu dan Dudu menulis surat",
+        letter: "Dubu dan Dudu menemani akhir surat",
+        finale: "Dubu dan Dudu merayakan ulang tahun"
       })
     })
   });

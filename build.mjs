@@ -25,7 +25,8 @@ const directories = [
   "assets/gifs",
   "assets/data",
   "assets/photos",
-  "assets/themes"
+  "assets/themes",
+  "assets/vendor"
 ];
 
 await rm(output, { recursive: true, force: true });

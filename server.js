@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = __dirname;
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.SNOOPY_DEV_PORT || process.env.PORT) || 3000;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",

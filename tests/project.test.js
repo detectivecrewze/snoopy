@@ -89,7 +89,7 @@ test("schema v2 and unknown themes safely normalize to Snoopy", () => {
   assert.equal(unknown.themeId, "snoopy");
 });
 
-test("Dubu and Duu changes presentation without changing customer content", () => {
+test("Dubu and Dudu changes presentation without changing customer content", () => {
   const input = {
     projectId: "dubu-demo",
     themeId: "dubu-duu",

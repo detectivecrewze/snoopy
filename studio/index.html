@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/studio/styles.css?v=20260820-13">
+  <link rel="stylesheet" href="/studio/styles.css?v=20260820-16">
 </head>
 <body>
   <div class="studio-grain" aria-hidden="true"></div>
@@ -79,9 +79,9 @@
                 </label>
                 <label class="theme-card" data-theme-card="dubu-duu">
                   <input type="radio" name="themeId" value="dubu-duu">
-                  <span class="theme-card__preview theme-card__preview--dubu"><img src="/assets/themes/dubu-duu/welcome.webp" alt="Preview tema Dubu dan Duu"></span>
-                  <span class="theme-card__copy"><b>Dubu &amp; Duu</b><small>Warm pastel yang lembut dan cozy.</small></span>
-                  <span class="theme-swatches" aria-label="Palet tema Dubu dan Duu"><i style="--swatch:#e8897d"></i><i style="--swatch:#f4d782"></i><i style="--swatch:#b9d8e6"></i><i style="--swatch:#fff4e7"></i></span>
+                  <span class="theme-card__preview theme-card__preview--dubu"><img src="/assets/themes/dubu-duu/welcome.webp" alt="Preview tema Dubu dan Dudu"></span>
+                  <span class="theme-card__copy"><b>Dubu &amp; Dudu</b><small>Warm pastel yang lembut dan cozy.</small></span>
+                  <span class="theme-swatches" aria-label="Palet tema Dubu dan Dudu"><i style="--swatch:#e8897d"></i><i style="--swatch:#f4d782"></i><i style="--swatch:#b9d8e6"></i><i style="--swatch:#fff4e7"></i></span>
                   <span class="theme-check" aria-hidden="true">✓</span>
                 </label>
               </div>
@@ -100,7 +100,7 @@
               </label>
               <label class="field">
                 <span>Tanggal ulang tahun</span>
-                <input id="birthday-date-input" name="birthdayDate" type="date" required>
+                <div class="date-input-shell"><input id="birthday-date-input" name="birthdayDate" type="date" required></div>
                 <small class="field-error" data-error-for="birthdayDate"></small>
               </label>
               <label class="field field--wide">
@@ -194,7 +194,7 @@
               <label class="field"><span>Artis lagu aktif</span><input id="music-artist" maxlength="100" placeholder="Nama artis"></label>
               <div class="mini-player field--wide">
                 <div class="studio-cover"><img id="studio-track-cover" alt="Cover lagu" hidden><span id="studio-cover-placeholder">MUSIC</span></div>
-                <button id="studio-audio-toggle" type="button" aria-label="Putar preview">▶</button>
+                <button id="studio-audio-toggle" type="button" aria-label="Putar preview"><span class="media-icon" aria-hidden="true"></span></button>
                 <div class="studio-track-copy"><strong id="studio-track-title">Belum ada lagu</strong><small id="studio-track-artist">Pilih lagu untuk mendengarkan preview</small></div>
                 <audio id="studio-audio" preload="metadata"></audio>
                 <div class="studio-audio-progress">
@@ -259,7 +259,7 @@
                 <h2>Kadomu siap?</h2>
                 <p>Publish akan membuat link gift dapat dibuka. Kamu tetap bisa mengeditnya lewat magic link ini.</p>
                 <div class="backend-theme-warning" id="backend-theme-warning" role="alert" hidden>
-                  Worker belum mendukung tema Dubu &amp; Duu. Deploy Worker schema v3 dahulu, lalu refresh Studio.
+                  Worker belum mendukung tema Dubu &amp; Dudu. Deploy Worker schema v3 dahulu, lalu refresh Studio.
                 </div>
                 <div class="publish-errors" id="publish-errors" hidden></div>
                 <button class="comic-button comic-button--red" id="publish-button" type="button">Publish kado</button>
@@ -284,6 +284,11 @@
               </aside>
             </div>
           </section>
+
+          <button class="gallery-add-fab" id="add-photo-floating" type="button" aria-label="Tambah foto atau video" hidden>
+            <span class="gallery-add-fab__icon" aria-hidden="true"></span>
+            <span>Tambah media</span>
+          </button>
 
           <footer class="wizard-actions">
             <button class="nav-button" id="previous-step" type="button" hidden>Kembali</button>
@@ -311,6 +316,28 @@
     </div>
   </dialog>
 
+  <dialog class="photo-crop-dialog" id="photo-crop-dialog" aria-labelledby="photo-crop-title" aria-describedby="photo-crop-description">
+    <section class="photo-crop-card">
+      <header class="photo-crop-heading">
+        <div><p class="kicker">ATUR FOTO</p><h2 id="photo-crop-title">Pilih bagian terbaiknya</h2></div>
+        <button class="dialog-close" id="close-photo-crop" type="button" aria-label="Tutup cropper">×</button>
+      </header>
+      <p id="photo-crop-description">Area terang berasio 4:3 adalah bagian yang akan tampil di Gallery Room.</p>
+      <div class="cropper-stage" id="cropper-stage"><img id="cropper-source" alt="Foto yang sedang dipotong"></div>
+      <div class="cropper-toolbar" aria-label="Kontrol foto">
+        <button type="button" data-crop-action="rotate-left" aria-label="Putar ke kiri"><span class="rotate-icon rotate-icon--left" aria-hidden="true"></span><small>Putar kiri</small></button>
+        <button type="button" data-crop-action="reset"><span class="reset-icon" aria-hidden="true"></span><small>Reset</small></button>
+        <button type="button" data-crop-action="rotate-right" aria-label="Putar ke kanan"><span class="rotate-icon" aria-hidden="true"></span><small>Putar kanan</small></button>
+      </div>
+      <label class="cropper-zoom"><span>Zoom</span><input id="cropper-zoom" type="range" min="-40" max="100" step="1" value="0" aria-label="Zoom foto"></label>
+      <p class="cropper-error" id="cropper-error" role="alert" hidden></p>
+      <footer class="cropper-actions">
+        <button class="nav-button" id="cancel-photo-crop" type="button">Batal</button>
+        <button class="nav-button nav-button--next" id="confirm-photo-crop" type="button">Gunakan foto</button>
+      </footer>
+    </section>
+  </dialog>
+
   <template id="gallery-item-template">
     <article class="gallery-item">
       <button class="remove-photo" type="button" aria-label="Hapus media" title="Hapus media"><span aria-hidden="true">×</span></button>
@@ -329,15 +356,16 @@
     </article>
   </template>
 
-  <script src="/shared/project.js?v=20260820-12"></script>
-  <script src="/runtime-config.js?v=20260820-12"></script>
+  <script src="/shared/project.js?v=20260820-14"></script>
+  <script src="/runtime-config.js?v=20260820-14"></script>
   <script>
     if (["localhost", "127.0.0.1", "::1"].includes(location.hostname)) {
-      document.write('<script src="/dev/mock-api.js?v=20260820-12"><\/script>');
+      document.write('<script src="/dev/mock-api.js?v=20260820-14"><\/script>');
     }
   </script>
-  <script src="/shared/api.js?v=20260820-12"></script>
+  <script src="/shared/api.js?v=20260820-14"></script>
+  <script src="/assets/vendor/cropperjs/cropper.min.js?v=2.1.1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer"></script>
-  <script src="/studio/app.js?v=20260820-12"></script>
+  <script src="/studio/app.js?v=20260820-16"></script>
 </body>
 </html>
