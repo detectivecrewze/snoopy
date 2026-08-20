@@ -32,7 +32,8 @@ function sendJson(response, status, payload) {
 
 function serveStatic(response, pathname) {
   let requested = decodeURIComponent(pathname).replace(/^\/+/, "");
-  if (pathname === "/" || /^\/gift\/[a-z0-9][a-z0-9-]{2,63}\/?$/i.test(pathname)) requested = "index.html";
+  if (pathname === "/") requested = "index.html";
+  if (/^\/gift\/[a-z0-9][a-z0-9-]{2,63}\/?$/i.test(pathname)) requested = "gift/index.html";
   if (/^\/studio(?:\/[a-z0-9][a-z0-9-]{2,63})?\/?$/i.test(pathname)) requested = "studio/index.html";
   if (/^\/admin\/?$/i.test(pathname)) requested = "admin/index.html";
   const filePath = path.resolve(ROOT, requested);

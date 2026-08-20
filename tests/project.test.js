@@ -112,14 +112,23 @@ test("theme manifest has ten isolated asset slots per theme", () => {
   assert.deepEqual(Object.keys(Project.THEMES["dubu-duu"].gifs).sort(), expectedSlots);
   assert.ok(Object.values(Project.THEMES.snoopy.gifs).every(source => source.startsWith("/assets/gifs/")));
   assert.ok(Object.values(Project.THEMES["dubu-duu"].gifs).every(source => source.startsWith("/assets/themes/dubu-duu/")));
-  assert.equal(new Set(Object.values(Project.THEMES["dubu-duu"].gifs)).size, 7);
+  assert.equal(new Set(Object.values(Project.THEMES["dubu-duu"].gifs)).size, 8);
   assert.equal(Project.getTheme("dubu-duu").palette.red, "#e8897d");
+});
+
+test("Dubu music and letter-card icons use their dedicated assets", () => {
+  const theme = GiftProject.THEMES["dubu-duu"];
+  assert.equal(theme.gifs.wish, "/assets/themes/dubu-duu/wish-success.webp");
+  assert.equal(theme.gifs.dance, "/assets/themes/dubu-duu/dance.webp");
+  assert.equal(theme.gifs.letterLogo, "/assets/themes/dubu-duu/letter-logo.gif");
+  assert.equal(theme.gifs.letter, "/assets/themes/dubu-duu/together.webp");
 });
 
 test("reads project id from gift and studio deep links", () => {
   assert.equal(Project.projectIdFromPath("/gift/sample-demo"), "sample-demo");
   assert.equal(Project.projectIdFromPath("/studio/ORDER-123"), "order-123");
   assert.equal(Project.projectIdFromPath("/studio/index.html", "?project=GIFT-LOCAL-123"), "gift-local-123");
+  assert.equal(Project.projectIdFromPath("/gift/index.html", "?project=GIFT-LOCAL-456"), "gift-local-456");
   assert.equal(Project.projectIdFromPath("/index.html", "?project=GIFT-LOCAL-456"), "gift-local-456");
   assert.equal(Project.projectIdFromPath("/admin"), "");
 });

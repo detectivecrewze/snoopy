@@ -60,12 +60,12 @@
       gifs: Object.freeze({
         welcome: "/assets/themes/dubu-duu/welcome.webp",
         wishWriting: "/assets/themes/dubu-duu/cozy.webp",
-        wish: "/assets/themes/dubu-duu/celebrate.webp",
+        wish: "/assets/themes/dubu-duu/wish-success.webp",
         hug: "/assets/themes/dubu-duu/hearts.webp",
         cozy: "/assets/themes/dubu-duu/cozy.webp",
         memoriesLogo: "/assets/themes/dubu-duu/together.webp",
-        dance: "/assets/themes/dubu-duu/affection.webp",
-        letterLogo: "/assets/themes/dubu-duu/goodbye.webp",
+        dance: "/assets/themes/dubu-duu/dance.webp",
+        letterLogo: "/assets/themes/dubu-duu/letter-logo.gif",
         letter: "/assets/themes/dubu-duu/together.webp",
         finale: "/assets/themes/dubu-duu/celebrate.webp"
       }),

@@ -264,6 +264,22 @@ button { color: inherit; }
 .wizard-actions > span { color: var(--muted); font: 600 .9rem var(--hand); text-align: center; }
 .nav-button--next { min-width: 110px; color: #fff; background: var(--red); }
 .nav-button:disabled, .comic-button:disabled { opacity: .55; cursor: wait; }
+#publish-button.is-live:disabled {
+  opacity: 1;
+  cursor: default;
+  background: #36a269;
+  box-shadow: 4px 5px 0 var(--ink);
+}
+#publish-button.is-live::before {
+  content: "";
+  width: 8px;
+  height: 14px;
+  margin-right: 10px;
+  border: solid #fff;
+  border-width: 0 3px 3px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+#publish-button.is-publishing:disabled { opacity: .72; cursor: wait; }
 
 @media (max-width: 960px) {
   .studio-layout { grid-template-columns: 220px minmax(0, 1fr); }

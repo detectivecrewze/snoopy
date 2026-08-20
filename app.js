@@ -61,7 +61,6 @@
     $("#home-subtitle").textContent = identity.subtitle;
     $("#wish-message").textContent = config.warmWish.message || "Semoga hari istimewamu dipenuhi kebahagiaan.";
     $("#wish-signature").textContent = config.warmWish.signature || identity.sender;
-    $("#letter-date").textContent = Project.formatBirthdayDate(identity.birthdayDate);
     $("#letter-heading").textContent = config.letter.greeting || `Dear ${identity.recipient},`;
     const galleryRoom = config.galleryRoom || {};
     const galleryTitle = galleryRoom.title || "Gallery Room";

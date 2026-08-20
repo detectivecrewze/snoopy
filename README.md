@@ -10,13 +10,14 @@ npm start
 
 Buka:
 
+- Landing page: `http://localhost:3000/`
 - Gift demo: `http://localhost:3000/gift/sample-demo?mock=1`
 - Studio demo: `http://localhost:3000/studio/sample-demo?mock=1#token=demo-token`
 - Admin dashboard: `http://localhost:3000/admin`
 
 Magic token dipindahkan dari URL fragment ke `sessionStorage` saat studio dibuka. Mock draft dan wish disimpan di `localStorage`. Perilaku ini hanya aktif pada localhost dan tidak menjadi fallback production.
 
-Saat dashboard admin dibuka dari localhost, magic link Studio menggunakan `/studio/index.html?project=:id#token=...` dan link gift menggunakan `/index.html?project=:id`. Format file-plus-query ini tetap bekerja pada Live Server dan static server sederhana yang tidak mendukung deep-link rewrite. Origin serta port mengikuti `location.origin`; project ID dan token dari Worker tetap dipertahankan. Pada domain production, URL cantik dari Worker tidak diubah.
+Saat dashboard admin dibuka dari localhost, magic link Studio menggunakan `/studio/index.html?project=:id#token=...` dan link gift menggunakan `/gift/index.html?project=:id`. Format file-plus-query ini tetap bekerja pada Live Server dan static server sederhana yang tidak mendukung deep-link rewrite. Origin serta port mengikuti `location.origin`; project ID dan token dari Worker tetap dipertahankan. Pada domain production, URL cantik dari Worker tidak diubah.
 
 ## Vercel static deployment
 
@@ -33,6 +34,10 @@ Jangan memilih preset Express atau mengarahkan Output Directory ke root. Konfigu
 5. Masukkan URL Worker ke `runtime-config.js` pada `apiBaseUrl`.
 
 Frontend kemudian mengakses Worker secara langsung. Pastikan domain Vercel sudah tercantum pada `ALLOWED_ORIGINS`.
+
+## Landing page
+
+Root `index.html` menampilkan landing page statis satu layar dengan stylesheet dari folder `landing/`. Halaman ini tidak memuat gift runtime atau API dan mengarahkan CTA utama ke `https://for-you-always.my.id/`. Gift shell fisik berada di `gift/index.html`, sehingga root tetap benar saat dibuka melalui Live Server yang tidak membaca rewrite Vercel.
 
 Media customer menggunakan bucket R2 For You Always yang sudah ada dan CDN `https://cdn.for-you-always.my.id`. Isi `bucket_name` dengan nama bucket Cloudflare aslinya; jangan membuat bucket baru hanya untuk Snoopy. File tetap terisolasi dalam prefix `snoopy/{projectId}/`.
 

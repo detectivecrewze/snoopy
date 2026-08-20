@@ -27,7 +27,7 @@
       if (!match) return value;
       const params = new URLSearchParams(url.search);
       params.set("project", decodeURIComponent(match[2]).toLowerCase());
-      const entryFile = match[1] === "studio" ? "/studio/index.html" : "/index.html";
+      const entryFile = match[1] === "studio" ? "/studio/index.html" : "/gift/index.html";
       return `${location.origin}${entryFile}?${params}${url.hash}`;
     } catch {
       return value;

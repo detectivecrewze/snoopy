@@ -53,6 +53,7 @@ Target akhirnya adalah project baru dapat dibuat otomatis sesudah pembayaran di 
 | Step 3 | Selesai | Dashboard `/admin`, generator manual, pencarian/filter, magic link, archive/restore, dan permanent delete. |
 | Step 4 | Selesai secara lokal | Automated tests dan browser QA untuk gift, Studio, admin shell, mobile responsiveness, route security, dan QR. |
 | Multi-theme v3 | Selesai | Schema v3, tujuh aset lokal Dubu & Duu, manifest sepuluh slot, selector Studio, live preview, palet dinamis, kompatibilitas v2, dan badge Admin sudah tersedia. |
+| Root landing | Selesai | Landing satu halaman menampilkan dua tema dan CTA ke toko utama tanpa memuat gift runtime. |
 | Deployment | Belum | Binding, secrets, domain production, deploy Worker, dan deploy Vercel masih harus dilakukan. |
 | Pakasir | Belum | Endpoint internal sudah disiapkan, tetapi pemanggilan dari service Pakasir belum dibuat. |
 
@@ -110,7 +111,7 @@ Target akhirnya adalah project baru dapat dibuat otomatis sesudah pembayaran di 
 
 ```text
 snoopy-gift-standalone/
-├── index.html                 # Shell gift publik
+├── index.html                 # Landing page utama tanpa API
 ├── app.js                     # Interaksi dan renderer gift
 ├── styles.css                 # Visual gift
 ├── runtime-config.js          # Public API base URL, tidak boleh berisi secret
@@ -122,6 +123,11 @@ snoopy-gift-standalone/
 ├── shared/
 │   ├── project.js             # Schema/normalizer/validator frontend
 │   └── api.js                 # Adapter API gift dan Studio
+├── gift/
+│   └── index.html             # Shell gift publik, terpisah dari root
+├── landing/
+│   ├── index.html             # Salinan entry landing untuk output/routing statis
+│   └── styles.css             # Visual landing
 ├── studio/
 │   ├── index.html             # Wizard tujuh langkah
 │   ├── styles.css
@@ -579,7 +585,7 @@ Studio: http://localhost:3000/studio/sample-demo?mock=1#token=demo-token
 Admin:  http://localhost:3000/admin
 ```
 
-Gift dan Studio menggunakan `dev/mock-api.js` serta `localStorage` pada localhost. Admin **tidak memiliki mock API** dan tetap memakai Worker yang ditentukan oleh `runtime-config.js`. Saat admin berjalan di localhost, link Studio diubah menjadi `/studio/index.html?project=:id#token=...` dan link gift menjadi `/index.html?project=:id`. Format ini kompatibel dengan static server tanpa rewrite. Pada production, URL cantik dari Worker dipakai tanpa perubahan.
+Gift dan Studio menggunakan `dev/mock-api.js` serta `localStorage` pada localhost. Admin **tidak memiliki mock API** dan tetap memakai Worker yang ditentukan oleh `runtime-config.js`. Saat admin berjalan di localhost, link Studio diubah menjadi `/studio/index.html?project=:id#token=...` dan link gift menjadi `/gift/index.html?project=:id`. Format ini kompatibel dengan static server tanpa rewrite. Pada production, URL cantik dari Worker dipakai tanpa perubahan.
 
 ### Menjalankan Worker
 
@@ -607,14 +613,15 @@ Perintah ini menjalankan syntax check pada frontend, Studio, admin, shared files
 Hasil terakhir pada 20 Agustus 2026:
 
 ```text
-tests: 24
-pass: 24
+tests: 25
+pass: 25
 fail: 0
 ```
 
 ### Automated coverage
 
 - Studio memiliki tujuh langkah dan memakai runtime config dinamis.
+- Root domain memakai landing statis terpisah dengan CTA ke toko utama.
 - Katalog musik membaca `audioUrl`/`coverUrl`, mendukung pencarian, preview, seek, playlist maksimal tiga lagu, migrasi format lama, dan fallback cover.
 - Galeri mendukung foto serta video MP4/WEBM 20 MB dengan autoplay, loop, muted, dan playsinline.
 - QR berbentuk hati menggunakan quiet zone aman dan empat pilihan palet warna.

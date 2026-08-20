@@ -24,11 +24,32 @@ test("studio exposes seven wizard steps and dynamic runtime configuration", () =
 });
 
 test("gift production shell no longer loads customer config.js", () => {
-  const gift = read("index.html");
+  const gift = read("gift/index.html");
   assert.doesNotMatch(gift, /src=["']\/?config\.js|window\.GIFT_CONFIG/);
   assert.match(gift, /\/shared\/project\.js/);
   assert.match(gift, /\/runtime-config\.js/);
   assert.doesNotMatch(gift, /gif-slot--memory-room/);
+  assert.match(gift, /assets\/photos\/peony\.webp/);
+  assert.match(gift, /wish-gif-frame/);
+  assert.doesNotMatch(gift, /id="letter-date"|class="letter-date"/);
+  assert.doesNotMatch(read("app.js"), /#letter-date/);
+});
+
+test("root landing page is isolated from gift runtime and links to the main store", () => {
+  const landing = read("index.html");
+  const landingStyles = read("landing/styles.css");
+  const server = read("server.js");
+  assert.match(landing, /Kado kecil,/);
+  assert.match(landing, /Lihat Pilihan Gift/);
+  assert.match(landing, /href="https:\/\/for-you-always\.my\.id\/"/);
+  assert.match(landing, /\/assets\/gifs\/welcome\.webp/);
+  assert.match(landing, /\/assets\/themes\/dubu-duu\/welcome\.webp/);
+  assert.doesNotMatch(landing, /app\.js|shared\/api\.js|runtime-config\.js|gift-api-base|audio/);
+  assert.doesNotMatch(landing, /Kado tidak ditemukan/);
+  assert.match(landingStyles, /@media \(max-width: 430px\)/);
+  assert.match(landingStyles, /prefers-reduced-motion/);
+  assert.match(server, /pathname === "\/"\) requested = "index\.html"/);
+  assert.match(server, /requested = "gift\/index\.html"/);
 });
 
 test("Studio and shared renderer expose the Snoopy and Dubu & Duu theme system", () => {
@@ -42,6 +63,8 @@ test("Studio and shared renderer expose the Snoopy and Dubu & Duu theme system",
   assert.match(studioApp, /themeId:/);
   assert.match(studioApp, /hasUnpublishedChanges/);
   assert.match(studioApp, /workerSupportsThemes/);
+  assert.match(studioApp, /saveQueue/);
+  assert.match(studioApp, /isPublishing/);
   assert.match(studio, /id="backend-theme-warning"/);
   assert.match(studio, /id="publish-sync-note"/);
   assert.match(giftApp, /Project\.getTheme\(config\.themeId\)/);
@@ -49,6 +72,8 @@ test("Studio and shared renderer expose the Snoopy and Dubu & Duu theme system",
   assert.doesNotMatch(giftApp, /THEME_GIFS/);
   assert.match(project, /const SCHEMA_VERSION = 3/);
   assert.match(project, /"dubu-duu"/);
+  assert.match(read("studio/styles.css"), /#publish-button\.is-live:disabled/);
+  assert.match(read("styles.css"), /body\[data-theme="dubu-duu"\] \.gif-slot--home-sticker/);
 });
 
 test("music catalog supports covers, selection, and audio preview", () => {
@@ -83,7 +108,7 @@ test("music catalog supports covers, selection, and audio preview", () => {
   assert.match(studioApp, /confirmDeleteGalleryItem/);
   assert.match(sharedProject, /coverUrl/);
   assert.match(workerProject, /coverUrl/);
-  assert.doesNotMatch(read("index.html"), /gift-track-cover/);
+  assert.doesNotMatch(read("gift/index.html"), /gift-track-cover/);
   assert.doesNotMatch(read("app.js"), /gift-track-cover/);
 });
 
@@ -98,6 +123,7 @@ test("admin dashboard includes secure login, generator, filters, and destructive
   assert.doesNotMatch(admin, /Admin sedang disiapkan/);
   assert.match(adminApp, /DEV_HOSTS/);
   assert.match(adminApp, /\/studio\/index\.html/);
+  assert.match(adminApp, /\/gift\/index\.html/);
   assert.match(adminApp, /params\.set\("project"/);
   assert.match(admin, /class="theme-pill"/);
   assert.match(adminApp, /Project\.normalizeThemeId/);
@@ -115,11 +141,14 @@ test("Vercel is forced to deploy the allowlisted static dist output", () => {
   assert.equal(config.buildCommand, "npm run build");
   assert.equal(config.outputDirectory, "dist");
   assert.deepEqual(config.rewrites, [
-    { source: "/gift/:id", destination: "/" },
+    { source: "/gift/:id", destination: "/gift" },
     { source: "/studio/:id", destination: "/studio" }
   ]);
+  assert.match(build, /"gift"/);
+  assert.match(build, /"landing"/);
   assert.match(build, /assets\/gifs/);
   assert.match(build, /assets\/data/);
+  assert.match(build, /assets\/photos/);
   assert.match(build, /assets\/themes/);
-  assert.doesNotMatch(build, /worker|tests|fixtures|server\.js|assets\/photos|assets\/audio/);
+  assert.doesNotMatch(build, /worker|tests|fixtures|server\.js|assets\/audio/);
 });

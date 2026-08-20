@@ -1,272 +1,64 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f8d44c">
-  <meta name="description" content="A playful birthday gift page made with love.">
-  <meta name="gift-api-base" content="">
-  <title>A Little Birthday Surprise</title>
+  <meta name="theme-color" content="#fff4dd">
+  <meta name="description" content="Birthday gift interaktif berisi ucapan, foto, lagu, surat, dan kejutan kecil dalam satu link dari For You Always.">
+  <link rel="canonical" href="https://snoopy.for-you-always.my.id/">
+  <title>Birthday Gift — For You Always</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260820-11">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/landing/styles.css?v=20260820-1">
 </head>
-<body class="app-loading">
-  <div class="grain" aria-hidden="true"></div>
-  <div class="confetti-layer" id="confetti-layer" aria-hidden="true"></div>
+<body>
+  <div class="paper-grain" aria-hidden="true"></div>
+  <div class="corner-dots corner-dots--peach" aria-hidden="true"></div>
+  <div class="corner-dots corner-dots--blue" aria-hidden="true"></div>
 
-  <main class="app-state" id="app-state" aria-live="polite">
-    <div class="state-card">
-      <div class="state-loader" id="state-loader" aria-hidden="true"><i></i><i></i><i></i></div>
-      <p class="eyebrow" id="state-eyebrow">Sebentar ya...</p>
-      <h1 id="state-title">Menyiapkan kejutan kecilmu</h1>
-      <p id="state-message">Kami sedang membuka pita dan merapikan semua kejutan di dalamnya.</p>
-      <button class="btn btn--primary" id="state-retry" type="button" hidden>Coba lagi</button>
-    </div>
-  </main>
-
-  <section class="gate screen is-active" id="gate" aria-labelledby="gate-title">
-    <div class="comic-dots dots-one" aria-hidden="true"></div>
-    <div class="comic-dots dots-two" aria-hidden="true"></div>
-    <main class="gate-card">
-      <div class="gate-visual" aria-hidden="true">
-        <span class="gate-tape"></span>
-        <div class="gate-polaroid">
-          <div class="gif-slot gif-slot--hero" data-gif="welcome">
-            <img alt="Welcome animation" hidden>
-            <div class="gif-placeholder"><span>GIF</span><strong>WELCOME</strong></div>
-          </div>
-          <p>a tiny birthday moment</p>
-        </div>
-      </div>
-      <div class="gate-copy">
-        <p class="gate-for">a little something for <span id="gate-recipient">you</span></p>
-        <h1 id="gate-title">Made with a little love,<br><em>just for you.</em></h1>
-        <p class="lead">There are a few small things waiting inside. Take your time and enjoy every one of them.</p>
-        <button class="btn gate-open-button" id="start-btn" type="button">
-          <span>Open your surprise</span>
-        </button>
-        <p class="gate-signoff">made especially for you · <span id="gate-sender">with love</span></p>
-      </div>
-    </main>
-  </section>
-
-  <section class="wish-screen screen" id="wish-screen" aria-labelledby="wish-title">
-    <main class="wish-card">
-      <div class="wish-heading">
-        <p class="eyebrow">Satu hal sebelum lanjut...</p>
-        <h2 id="wish-title">Tuliskan satu harapan</h2>
-        <p>Buat satu harapan kecil untuk dirimu sendiri. Tidak perlu sempurna. Cukup sesuatu yang benar-benar kamu inginkan.</p>
-      </div>
-
-      <div class="wish-composer" id="wish-composer">
-        <div class="gif-slot gif-slot--writing" data-gif="wishWriting">
-          <img alt="Snoopy and Woodstock sharing a hug" hidden>
-          <div class="gif-placeholder"><span>GIF</span><strong>WISH</strong></div>
-        </div>
-
-        <div class="wish-input-card" id="wish-input-card">
-          <label for="wish-input"><span>Untuk diriku sendiri,</span> aku berharap...</label>
-          <textarea id="wish-input" maxlength="280" rows="3" placeholder="Tulis harapanmu di sini..." aria-describedby="wish-status"></textarea>
-          <div class="wish-input-meta">
-            <span><b id="wish-count">0</b>/280</span>
-          </div>
-          <p class="wish-status" id="wish-status" role="status"></p>
-        </div>
-
-        <div class="wish-action" id="wish-action">
-          <div class="cake-illustration" aria-hidden="true">
-            <span class="flame" id="flame"></span>
-            <span class="candle"></span>
-            <span class="cake-top"></span>
-            <span class="cake-body"><i></i><i></i><i></i></span>
-            <span class="cake-plate"></span>
-          </div>
-          <div class="wish-action-copy">
-            <strong>Harapanmu sudah siap?</strong>
-            <small>Saat dikirim, lilinnya akan ikut padam.</small>
-            <button class="btn wish-submit-button" id="cake-button" type="button">
-              <span>Kirim harapanku</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="wish-reveal" id="wish-reveal" aria-live="polite">
-        <div class="gif-slot gif-slot--wish" data-gif="wish">
-          <img alt="Wish granted animation" hidden>
-          <div class="gif-placeholder"><span>GIF</span><strong>WISH</strong></div>
-        </div>
-        <strong>Harapanmu sudah dikirim ke semesta!</strong>
-        <blockquote class="submitted-wish">“<span id="submitted-wish-text"></span>”</blockquote>
-        <small class="wish-saved-note" id="wish-saved-note">Harapanmu sudah tersimpan dengan aman</small>
-        <button class="btn btn--primary" id="open-gift-btn" type="button">Buka hadiahnya <span aria-hidden="true">→</span></button>
-      </div>
-    </main>
-  </section>
-
-  <section class="home screen" id="home" aria-labelledby="home-title">
-    <header class="home-header">
-      <div class="gif-slot gif-slot--home-sticker" data-gif="cozy">
-        <img alt="Snoopy and Woodstock relaxing together" hidden>
-        <div class="gif-placeholder"><span>GIF</span><strong>COZY</strong></div>
-      </div>
-      <p class="eyebrow" id="birthday-date">Your special day</p>
-      <h2 id="home-title">Happy Birthday,<br><span id="recipient-name">Birthday Star!</span></h2>
-      <p id="home-subtitle">Four little surprises made especially for you.</p>
+  <main class="landing-shell">
+    <header class="brand-bar">
+      <a class="brand" href="https://for-you-always.my.id/" aria-label="For You Always">
+        <span class="brand-mark" aria-hidden="true">FYA</span>
+        <span><b>FOR YOU</b><small>ALWAYS</small></span>
+      </a>
+      <p>INTERACTIVE BIRTHDAY GIFT</p>
     </header>
 
-    <main class="gift-grid" aria-label="Birthday surprises">
-      <button class="gift-card gift-card--yellow" type="button" data-open-view="wishes">
-        <span class="gift-number">01</span>
-        <div class="gif-slot gif-slot--card" data-gif="hug">
-          <img alt="Birthday hug animation" hidden>
-          <div class="gif-placeholder"><span>GIF</span><strong>HUG</strong></div>
-        </div>
-        <span class="gift-label"><strong>Warm Wishes</strong><small>a hug in web form</small></span>
-      </button>
-      <button class="gift-card gift-card--blue" type="button" data-open-view="memories">
-        <span class="gift-number">02</span>
-        <div class="gif-slot gif-slot--card" data-gif="memoriesLogo">
-          <img alt="Snoopy exploring memories" hidden>
-          <div class="gif-placeholder"><span>GIF</span><strong>MEMORIES</strong></div>
-        </div>
-        <span class="gift-label"><strong id="memory-card-title">Gallery Room</strong><small id="memory-card-description">Kumpulan momen yang dipilih khusus untukmu.</small></span>
-      </button>
-      <button class="gift-card gift-card--red" type="button" data-open-view="music">
-        <span class="gift-number">03</span>
-        <div class="gif-slot gif-slot--card" data-gif="dance">
-          <img alt="Dancing animation" hidden>
-          <div class="gif-placeholder"><span>GIF</span><strong>DANCE</strong></div>
-        </div>
-        <span class="gift-label"><strong>Our Song</strong><small>press play for good vibes</small></span>
-      </button>
-      <button class="gift-card gift-card--cream" type="button" data-open-view="letter">
-        <span class="gift-number">04</span>
-        <div class="gif-slot gif-slot--card" data-gif="letterLogo">
-          <img alt="Snoopy writing a special letter" hidden>
-          <div class="gif-placeholder"><span>GIF</span><strong>LETTER</strong></div>
-        </div>
-        <span class="gift-label"><strong>A Letter</strong><small>one last thing to say</small></span>
-      </button>
-    </main>
-
-  </section>
-
-  <section class="detail-screen screen" id="detail-screen" aria-live="polite">
-    <button class="back-button" id="back-button" type="button" aria-label="Back to all gifts">← <span>all gifts</span></button>
-
-    <article class="detail-view wishes-view" data-view="wishes" aria-labelledby="wishes-title">
-      <div class="wishes-layout">
-        <div class="note-card note-card--wishes">
-          <div class="gif-slot gif-slot--feature" data-gif="hug">
-            <img alt="A warm birthday hug animation" hidden>
-            <div class="gif-placeholder"><span>GIF</span><strong>BIG HUG</strong></div>
-          </div>
-          <div class="wish-copy">
-            <p class="eyebrow">Surprise no. 01</p>
-            <h2 id="wishes-title">A warm hug for you</h2>
-            <p id="wish-message">May today feel soft, bright, and full of the kind of happiness that stays with you long after the candles are gone.</p>
-          <p class="signature" id="wish-signature">- with lots of love</p>
-          </div>
+    <section class="hero" aria-labelledby="landing-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><i aria-hidden="true"></i> FOR YOU, ALWAYS</p>
+        <h1 id="landing-title">Kado kecil,<br><em>rasa yang besar.</em></h1>
+        <p class="hero-description">Buat birthday gift interaktif berisi ucapan, foto, lagu, surat, dan kejutan kecil dalam satu link.</p>
+        <a class="primary-cta" href="https://for-you-always.my.id/"><span>Lihat Pilihan Gift</span><i aria-hidden="true">→</i></a>
+        <div class="trust-line" aria-label="Keunggulan gift">
+          <span>Personal</span><i aria-hidden="true"></i><span>Bisa diedit</span><i aria-hidden="true"></i><span>Siap dibagikan</span>
         </div>
       </div>
-      <div class="floating-words" aria-hidden="true"><span>big smiles</span><span>sweet wishes</span><span>good days</span><span>for you</span></div>
-    </article>
 
-    <article class="detail-view memories-view" data-view="memories" aria-labelledby="memories-title">
-      <header class="detail-heading">
-        <p class="eyebrow">Surprise no. 02</p>
-        <h2 id="memories-title">Gallery Room</h2>
-        <p id="memories-subtitle">Kumpulan momen yang dipilih khusus untukmu.</p>
-      </header>
-      <div class="memory-stage">
-        <button class="round-button" id="memory-prev" type="button" aria-label="Previous memory">←</button>
-        <figure class="polaroid" id="memory-card">
-          <div class="memory-photo"><img id="memory-image" alt="A shared memory" hidden><video id="memory-video" muted autoplay loop playsinline hidden aria-label="A shared video memory"></video><div class="photo-placeholder" id="photo-placeholder">YOUR MEDIA<br><small>01</small></div></div>
-          <figcaption><strong id="memory-title">Our favorite day</strong><span id="memory-caption">Replace this with a short story about the photo.</span></figcaption>
-        </figure>
-        <button class="round-button" id="memory-next" type="button" aria-label="Next memory">→</button>
-      </div>
-      <div class="memory-dots" id="memory-dots" aria-label="Choose a memory"></div>
-    </article>
-
-    <article class="detail-view music-view" data-view="music" aria-labelledby="music-heading">
-      <div class="music-layout">
-        <div class="record-scene">
-          <div class="gif-slot gif-slot--music" data-gif="dance">
-            <img alt="Dancing to our song" hidden>
-            <div class="gif-placeholder"><span>GIF</span><strong>DANCE</strong></div>
+      <div class="theme-showcase" aria-label="Pilihan tema birthday gift">
+        <article class="theme-card theme-card--snoopy">
+          <span class="card-tape card-tape--blue" aria-hidden="true"></span>
+          <div class="character-frame"><img src="/assets/gifs/welcome.webp" width="220" height="220" alt="Snoopy membawa kejutan ulang tahun"></div>
+          <div class="card-copy">
+            <div><small>THEME 01</small><h2>Snoopy Edition</h2></div>
+            <span class="palette" aria-label="Palet merah, kuning, biru, dan krem"><i></i><i></i><i></i><i></i></span>
           </div>
-          <div class="turntable">
-            <div class="record" id="record"><div class="record-label">FOR<br>YOU</div></div>
-            <div class="tonearm" aria-hidden="true"></div>
-          </div>
-        </div>
-        <div class="player-card">
-          <p class="eyebrow">Surprise no. 03</p>
-          <h2 id="music-heading">A song for you</h2>
-          <p class="track-name" id="track-name">Our Special Song</p>
-          <p class="artist-name" id="artist-name">From me, to you</p>
-          <audio id="audio" preload="metadata"></audio>
-          <div class="progress-wrap">
-            <span id="current-time">0:00</span>
-            <input id="seek" type="range" min="0" max="100" value="0" aria-label="Song progress">
-            <span id="duration">0:00</span>
-          </div>
-          <div class="player-actions">
-            <button class="round-button" id="previous-track" type="button" aria-label="Lagu sebelumnya">←</button>
-            <button class="play-button" id="play-button" type="button" aria-label="Play song"><span id="play-icon">▶</span></button>
-            <button class="round-button" id="next-track" type="button" aria-label="Lagu berikutnya">→</button>
-          </div>
-          <p class="music-help" id="music-help">Playlist hadiahmu akan diputar di sini.</p>
-        </div>
-      </div>
-    </article>
+        </article>
 
-    <article class="detail-view letter-view" data-view="letter" aria-labelledby="letter-heading">
-      <div class="letter-paper" id="letter-paper">
-        <div class="tape" aria-hidden="true"></div>
-        <p class="eyebrow">Surprise no. 04</p>
-        <h2 class="letter-heading" id="letter-heading">A letter for you</h2>
-        <p class="letter-date" id="letter-date">On your special day</p>
-        <div class="letter-copy" id="letter-copy"></div>
-        <div class="gif-slot gif-slot--letter" data-gif="letter">
-          <img alt="A sweet ending animation" hidden>
-          <div class="gif-placeholder"><span>GIF</span><strong>LETTER</strong></div>
-        </div>
-        <div class="letter-actions">
-          <button class="text-button" id="skip-typing" type="button">show full letter</button>
-          <button class="btn btn--primary" id="finish-button" type="button" hidden>Keep this forever</button>
-        </div>
-      </div>
-    </article>
-  </section>
+        <article class="theme-card theme-card--dubu">
+          <span class="card-tape card-tape--yellow" aria-hidden="true"></span>
+          <div class="character-frame"><img src="/assets/themes/dubu-duu/welcome.webp" width="220" height="220" alt="Dubu dan Duu membawa kejutan penuh hati"></div>
+          <div class="card-copy">
+            <div><small>THEME 02</small><h2>Dubu &amp; Duu Edition</h2></div>
+            <span class="palette" aria-label="Palet peach, butter yellow, powder blue, dan cream"><i></i><i></i><i></i><i></i></span>
+          </div>
+        </article>
 
-  <div class="finale" id="finale" role="dialog" aria-modal="true" aria-labelledby="finale-title" hidden>
-    <div class="finale-card">
-      <button class="finale-close" id="finale-close" type="button" aria-label="Close">×</button>
-      <div class="gif-slot gif-slot--finale" data-gif="finale">
-        <img alt="Happy birthday finale animation" hidden>
-        <div class="gif-placeholder"><span>GIF</span><strong>FINALE</strong></div>
+        <div class="love-note" aria-hidden="true"><span>made for</span><b>someone special</b></div>
       </div>
-      <p class="eyebrow">That’s all... for now</p>
-      <h2 id="finale-title">Happy birthday!</h2>
-      <p>May this be the beginning of your happiest chapter yet.</p>
-      <button class="btn btn--primary" id="replay-button" type="button">Replay the surprise ↺</button>
-    </div>
-  </div>
-
-  <noscript>This birthday gift needs JavaScript enabled to open.</noscript>
-  <script src="/shared/project.js?v=20260820-11"></script>
-  <script src="/runtime-config.js?v=20260820-11"></script>
-  <script>
-    if (["localhost", "127.0.0.1", "::1"].includes(location.hostname)) {
-      document.write('<script src="/dev/mock-api.js?v=20260820-11"><\/script>');
-    }
-  </script>
-  <script src="/shared/api.js?v=20260820-12"></script>
-  <script src="/app.js?v=20260820-11"></script>
+    </section>
+  </main>
 </body>
 </html>

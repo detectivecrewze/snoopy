@@ -60,6 +60,8 @@
   let draft = Project.emptyProject(projectId || "new-gift");
   let currentStep = 1;
   let saveTimer = null;
+  let saveQueue = Promise.resolve();
+  let isPublishing = false;
   let previewTimer = null;
   let catalogTracks = [];
   let previewTrackId = "";
@@ -178,7 +180,7 @@
     updatePublishedResult();
   }
 
-  async function saveDraft(status = "draft") {
+  async function performSaveDraft(status = "draft") {
     window.clearTimeout(saveTimer);
     readForm();
     const intendedThemeId = draft.themeId;
@@ -202,6 +204,15 @@
       setSaveState("error", error.message || "Draft belum tersimpan");
       throw error;
     }
+  }
+
+  function saveDraft(status = "draft") {
+    // Keep autosave and Publish ordered. A slower autosave must never finish
+    // after Publish and leave the Studio looking out of sync with the live gift.
+    window.clearTimeout(saveTimer);
+    const operation = saveQueue.catch(() => {}).then(() => performSaveDraft(status));
+    saveQueue = operation;
+    return operation;
   }
 
   function stepErrors(step) {
@@ -800,7 +811,7 @@
     if (isLocalHost) {
       const params = new URLSearchParams({ project: projectId, preview: "1" });
       if (cacheBust) params.set("t", cacheBust);
-      return `/index.html?${params}`;
+      return `/gift/index.html?${params}`;
     }
     const suffix = cacheBust ? `&t=${encodeURIComponent(cacheBust)}` : "";
     return `/gift/${encodeURIComponent(projectId)}?preview=1${suffix}`;
@@ -808,7 +819,7 @@
 
   function giftUrl() {
     return isLocalHost
-      ? `${location.origin}/index.html?project=${encodeURIComponent(projectId)}`
+      ? `${location.origin}/gift/index.html?project=${encodeURIComponent(projectId)}`
       : `${location.origin}/gift/${encodeURIComponent(projectId)}`;
   }
 
@@ -904,10 +915,15 @@
   function updatePublishedResult(explicitUrl) {
     const published = draft.status === "published";
     const pending = published && hasUnpublishedChanges;
+    const button = $("#publish-button");
     $("#publish-status").textContent = pending ? "CHANGES NOT LIVE" : published ? "PUBLISHED" : "DRAFT";
     $("#published-result").hidden = !published;
-    $("#publish-button").textContent = pending ? "Publish perubahan" : published ? "Sudah dipublish" : "Publish kado";
-    $("#publish-button").disabled = published && !pending;
+    button.classList.toggle("is-publishing", isPublishing);
+    button.classList.toggle("is-live", published && !pending && !isPublishing);
+    button.textContent = isPublishing
+      ? "Mempublikasikan..."
+      : pending ? "Publish perubahan" : published ? "Kado sudah live" : "Publish kado";
+    button.disabled = isPublishing || (published && !pending);
     if (!published) return;
     const url = explicitUrl || giftUrl();
     $("#gift-url").value = url;
@@ -952,9 +968,8 @@
       box.hidden = false;
       return;
     }
-    const button = $("#publish-button");
-    button.disabled = true;
-    button.textContent = "Mempublikasikan...";
+    isPublishing = true;
+    updatePublishedResult();
     try {
       const payload = await saveDraft("published");
       draft.status = "published";
@@ -964,6 +979,7 @@
       box.textContent = error.message;
       box.hidden = false;
     } finally {
+      isPublishing = false;
       updatePublishedResult();
     }
   }
