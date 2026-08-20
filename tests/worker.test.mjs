@@ -287,3 +287,83 @@ test("configured preview origins and extension MIME fallbacks are supported", as
   assert.equal(mov.response.status, 201);
   assert.match(mov.payload.url, /\/videos\/.*\.mov$/);
 });
+
+// ── Pakasir Gateway contract tests ────────────────────────────────────────────
+
+test("pakasir gateway contract: internal project creation returns studioUrl", async () => {
+  const env = makeEnv();
+  const { response, payload } = await call(env, "/api/internal/projects", {
+    method: "POST",
+    token: env.INTERNAL_GENERATOR_SECRET,
+    body: { source: "pakasir", idempotencyKey: "ORDER-BIRTHDAY-123:birthday" }
+  });
+  assert.equal(response.status, 201);
+  assert.ok(payload.projectId, "should have projectId");
+  assert.ok(payload.studioUrl, "should have studioUrl");
+  assert.ok(payload.giftUrl, "should have giftUrl");
+  assert.match(payload.studioUrl, /\/studio\//, "studioUrl should contain /studio/");
+});
+
+test("pakasir gateway contract: internal project is idempotent with same idempotencyKey", async () => {
+  const env = makeEnv();
+  const idempotencyKey = "ORDER-BIRTHDAY-456:birthday";
+  const first = await call(env, "/api/internal/projects", {
+    method: "POST",
+    token: env.INTERNAL_GENERATOR_SECRET,
+    body: { source: "pakasir", idempotencyKey }
+  });
+  const second = await call(env, "/api/internal/projects", {
+    method: "POST",
+    token: env.INTERNAL_GENERATOR_SECRET,
+    body: { source: "pakasir", idempotencyKey }
+  });
+  assert.equal(first.payload.projectId, second.payload.projectId, "projectId should be identical");
+  assert.equal(first.payload.studioUrl, second.payload.studioUrl, "studioUrl should be identical");
+  assert.equal(first.payload.giftUrl, second.payload.giftUrl, "giftUrl should be identical");
+});
+
+test("pakasir gateway contract: different idempotencyKey produces different projectId", async () => {
+  const env = makeEnv();
+  const first = await call(env, "/api/internal/projects", {
+    method: "POST",
+    token: env.INTERNAL_GENERATOR_SECRET,
+    body: { source: "pakasir", idempotencyKey: "ORDER-BIRTHDAY-AAA:birthday" }
+  });
+  const second = await call(env, "/api/internal/projects", {
+    method: "POST",
+    token: env.INTERNAL_GENERATOR_SECRET,
+    body: { source: "pakasir", idempotencyKey: "ORDER-BIRTHDAY-BBB:birthday" }
+  });
+  assert.notEqual(first.payload.projectId, second.payload.projectId, "different orders should produce different projectId");
+});
+
+test("pakasir gateway contract: missing or wrong token returns 401 or 403", async () => {
+  const env = makeEnv();
+  const noToken = await call(env, "/api/internal/projects", {
+    method: "POST",
+    body: { source: "pakasir", idempotencyKey: "ORDER-BIRTHDAY-NOAUTH:birthday" }
+  });
+  assert.ok([401, 403].includes(noToken.response.status), `expected 401 or 403, got ${noToken.response.status}`);
+
+  const wrongToken = await call(env, "/api/internal/projects", {
+    method: "POST",
+    token: "wrong-secret-here",
+    body: { source: "pakasir", idempotencyKey: "ORDER-BIRTHDAY-WRONGAUTH:birthday" }
+  });
+  assert.ok([401, 403].includes(wrongToken.response.status), `expected 401 or 403, got ${wrongToken.response.status}`);
+});
+
+test("pakasir gateway contract: forced status published in payload is ignored — project stays draft", async () => {
+  const env = makeEnv();
+  const { payload } = await call(env, "/api/internal/projects", {
+    method: "POST",
+    token: env.INTERNAL_GENERATOR_SECRET,
+    body: { source: "pakasir", idempotencyKey: "ORDER-BIRTHDAY-FORCEPUBLISH:birthday", status: "published" }
+  });
+  assert.ok(payload.projectId, "should have projectId");
+  // Verify the stored project is actually draft — fetch via admin
+  const adminList = await call(env, "/api/admin/projects", { token: env.ADMIN_SECRET });
+  const created = adminList.payload.projects.find(p => p.projectId === payload.projectId);
+  assert.ok(created, "project should appear in admin list");
+  assert.equal(created.status, "draft", "project status should be draft, not published");
+});
