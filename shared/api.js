@@ -112,6 +112,14 @@
       });
     }
 
+    clearAllWishes() {
+      if (this.mock) return this.mock.clearAllWishes(this.projectId, this.token);
+      return jsonRequest(`/api/wishes/${encodeURIComponent(this.projectId)}`, {
+        method: "DELETE",
+        headers: tokenHeaders(this.token)
+      });
+    }
+
     submitWish(wish, recipient) {
       return this.mock
         ? this.mock.submitWish(this.projectId, wish, recipient)

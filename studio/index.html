@@ -232,7 +232,10 @@
                 <h1 id="step-6-title">Wish Inbox</h1>
                 <p>Harapan yang dikirim penerima akan muncul di sini. Inbox tidak pernah ditampilkan di halaman gift publik.</p>
               </div>
-              <button class="small-button" id="refresh-wishes" type="button">Refresh</button>
+              <div class="wish-heading-actions">
+                <button class="small-button" id="refresh-wishes" type="button">Refresh</button>
+                <button class="small-button small-button--danger" id="clear-all-wishes" type="button" disabled>Hapus Semua</button>
+              </div>
             </div>
             <label class="toggle-card">
               <input id="wish-enabled" type="checkbox" checked>
@@ -328,6 +331,21 @@
       <div class="media-delete-actions">
         <button class="nav-button" id="cancel-delete-wish" type="button">Batal, simpan</button>
         <button class="nav-button delete-confirm-button" id="confirm-delete-wish" type="button">Ya, hapus wish</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="media-delete-dialog" id="clear-wishes-dialog" aria-labelledby="clear-wishes-title" aria-describedby="clear-wishes-description">
+    <div class="media-delete-card">
+      <div class="dialog-tape" aria-hidden="true"></div>
+      <button class="dialog-close" id="close-clear-wishes" type="button" aria-label="Tutup dialog">×</button>
+      <span class="delete-sticker" aria-hidden="true">×</span>
+      <p class="kicker">HAPUS SEMUA</p>
+      <h2 id="clear-wishes-title">Kosongkan Wish Inbox?</h2>
+      <p id="clear-wishes-description">Semua pesan ucapan di Wish Inbox akan dihapus permanen dan tidak dapat dikembalikan.</p>
+      <div class="media-delete-actions">
+        <button class="nav-button" id="cancel-clear-wishes" type="button">Batal, simpan</button>
+        <button class="nav-button delete-confirm-button" id="confirm-clear-wishes" type="button">Ya, hapus semua</button>
       </div>
     </div>
   </dialog>

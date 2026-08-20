@@ -216,6 +216,15 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
   assert.equal(inboxAfterDelete.payload.wishes.length, 1);
   assert.equal(inboxAfterDelete.payload.wishes[0].id, secondWish.payload.id);
 
+  const clearAll = await call(env, `/api/wishes/${projectId}`, { method: "DELETE", token: editToken });
+  assert.equal(clearAll.response.status, 200);
+  assert.equal(clearAll.payload.deleted, true);
+  assert.equal(clearAll.payload.clearedCount, 1);
+
+  const emptyInbox = await call(env, `/api/wishes/${projectId}`, { token: editToken });
+  assert.equal(emptyInbox.response.status, 200);
+  assert.equal(emptyInbox.payload.wishes.length, 0);
+
   const adminList = await call(env, "/api/admin/projects", { token: env.ADMIN_SECRET });
   assert.equal(adminList.response.status, 200);
   assert.equal(adminList.payload.stats.published, 1);

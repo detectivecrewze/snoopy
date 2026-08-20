@@ -81,6 +81,11 @@
       localStorage.setItem(wishesKey(id), JSON.stringify(nextWishes));
       return wait({ deleted: true, wishId, mock: true });
     },
+    async clearAllWishes(id, token) {
+      requireToken(token);
+      localStorage.setItem(wishesKey(id), "[]");
+      return wait({ deleted: true, cleared: true, mock: true });
+    },
     async submitWish(id, wish, recipient) {
       const wishes = JSON.parse(localStorage.getItem(wishesKey(id)) || "[]");
       const entry = { id: root.GiftProject.makeId("wish"), wish, recipient, createdAt: new Date().toISOString() };

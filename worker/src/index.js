@@ -416,6 +416,15 @@ async function handleDeleteWish(request, env, projectId, wishId) {
   return json(request, env, { deleted: true, wishId: targetId, projectId }, 200, { "Cache-Control": "no-store" });
 }
 
+async function handleDeleteAllWishes(request, env, projectId) {
+  const record = await requireProject(env, projectId);
+  if (record.status === "archived") throw new HttpError(410, "Project sedang diarsipkan.");
+  await authorizeProject(request, env, record, true);
+  const wishKeys = await collectKvKeys(env, `${WISH_PREFIX}${projectId}:`);
+  await deleteKvKeys(env, wishKeys);
+  return json(request, env, { deleted: true, clearedCount: wishKeys.length, projectId }, 200, { "Cache-Control": "no-store" });
+}
+
 async function adminProjectSummary(env, record) {
   const editToken = await deriveEditToken(env, record.projectId);
   const tokenMatches = record.auth?.editTokenHash && constantTimeEqual(await sha256(editToken), record.auth.editTokenHash);
@@ -561,6 +570,7 @@ async function route(request, env) {
   match = path.match(/^\/api\/wishes\/([^/]+)\/([^/]+)$/);
   if (request.method === "DELETE" && match) return handleDeleteWish(request, env, decodeURIComponent(match[1]).toLowerCase(), decodeURIComponent(match[2]));
   match = path.match(/^\/api\/wishes\/([^/]+)$/);
+  if (request.method === "DELETE" && match) return handleDeleteAllWishes(request, env, decodeURIComponent(match[1]).toLowerCase());
   if (request.method === "GET" && match) return handleGetWishes(request, env, decodeURIComponent(match[1]).toLowerCase());
   if (request.method === "GET" && path === "/api/admin/projects") return handleAdminListProjects(request, env);
   if (request.method === "POST" && path === "/api/admin/projects") return handleAdminCreateProject(request, env);

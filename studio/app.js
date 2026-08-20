@@ -883,10 +883,12 @@
 
   async function loadWishes() {
     const inbox = $("#wish-inbox");
+    const clearBtn = $("#clear-all-wishes");
     inbox.setAttribute("aria-busy", "true");
     try {
       const payload = await api.getWishes();
       const wishes = Array.isArray(payload.wishes) ? payload.wishes : [];
+      if (clearBtn) clearBtn.disabled = !wishes.length;
       inbox.replaceChildren();
       if (!wishes.length) {
         inbox.innerHTML = '<div class="empty-inbox"><strong>Belum ada wish</strong><p>Nanti pesan pertama akan muncul seperti secarik catatan kecil di sini.</p></div>';
@@ -918,6 +920,7 @@
         inbox.appendChild(note);
       });
     } catch (error) {
+      if (clearBtn) clearBtn.disabled = true;
       inbox.innerHTML = `<div class="empty-inbox"><strong>Inbox belum dapat dimuat</strong><p>${escapeHtml(error.message)}</p></div>`;
     } finally {
       inbox.removeAttribute("aria-busy");
@@ -958,6 +961,8 @@
           const inbox = $("#wish-inbox");
           if (inbox && !inbox.querySelector(".wish-note")) {
             inbox.innerHTML = '<div class="empty-inbox"><strong>Belum ada wish</strong><p>Nanti pesan pertama akan muncul seperti secarik catatan kecil di sini.</p></div>';
+            const clearBtn = $("#clear-all-wishes");
+            if (clearBtn) clearBtn.disabled = true;
           }
         }, 250);
       } else {
@@ -969,6 +974,33 @@
     } finally {
       confirmButton.disabled = false;
       confirmButton.textContent = "Ya, hapus wish";
+    }
+  }
+
+  function openClearWishesDialog() {
+    const dialog = $("#clear-wishes-dialog");
+    if (typeof dialog.showModal === "function") dialog.showModal();
+  }
+
+  function closeClearWishesDialog() {
+    const dialog = $("#clear-wishes-dialog");
+    if (dialog.open) dialog.close();
+  }
+
+  async function confirmClearAllWishes() {
+    const confirmButton = $("#confirm-clear-wishes");
+    confirmButton.disabled = true;
+    confirmButton.textContent = "Mengosongkan...";
+    try {
+      await api.clearAllWishes();
+      closeClearWishesDialog();
+      await loadWishes();
+    } catch (error) {
+      alert(`Gagal mengosongkan wish: ${error.message}`);
+      closeClearWishesDialog();
+    } finally {
+      confirmButton.disabled = false;
+      confirmButton.textContent = "Ya, hapus semua";
     }
   }
 
@@ -1235,6 +1267,13 @@
       if (event.target === event.currentTarget) closeDeleteWishDialog();
     });
     $("#delete-wish-dialog").addEventListener("close", () => { pendingDeleteWishId = ""; pendingDeleteWishNode = null; });
+    $("#clear-all-wishes").addEventListener("click", openClearWishesDialog);
+    $("#close-clear-wishes").addEventListener("click", closeClearWishesDialog);
+    $("#cancel-clear-wishes").addEventListener("click", closeClearWishesDialog);
+    $("#confirm-clear-wishes").addEventListener("click", confirmClearAllWishes);
+    $("#clear-wishes-dialog").addEventListener("click", event => {
+      if (event.target === event.currentTarget) closeClearWishesDialog();
+    });
     $("#close-photo-crop").addEventListener("click", closePhotoCropper);
     $("#cancel-photo-crop").addEventListener("click", closePhotoCropper);
     $("#confirm-photo-crop").addEventListener("click", confirmPhotoCrop);
