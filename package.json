@@ -2,7 +2,7 @@
   "name": "snoopy-birthday-gift",
   "version": "1.0.0",
   "private": true,
-  "description": "Dynamic Snoopy birthday gift and seven-step customer studio.",
+  "description": "Dynamic multi-theme birthday gift and seven-step customer studio.",
   "scripts": {
     "build": "node build.mjs",
     "start": "node server.js",

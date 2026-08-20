@@ -119,6 +119,10 @@
       card.dataset.projectId = project.projectId;
       card.dataset.status = project.status;
       $(".status-pill", card).textContent = project.status;
+      const themeId = Project.normalizeThemeId(project.themeId);
+      const themePill = $(".theme-pill", card);
+      themePill.textContent = Project.getTheme(themeId).label;
+      themePill.dataset.theme = themeId;
       $(".project-id", card).textContent = project.projectId;
       $(".project-recipient", card).textContent = project.recipient || "Belum diisi";
       $(".project-sender", card).textContent = project.sender || "Belum diisi";

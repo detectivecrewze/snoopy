@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f8d44c">
   <meta name="gift-api-base" content="">
-  <title>Snoopy Gift Studio</title>
+  <title>Birthday Gift Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/studio/styles.css?v=20260820-9">
+  <link rel="stylesheet" href="/studio/styles.css?v=20260820-11">
 </head>
 <body>
   <div class="studio-grain" aria-hidden="true"></div>
@@ -63,8 +63,30 @@
             <div class="step-heading">
               <p class="kicker">LANGKAH 01</p>
               <h1 id="step-1-title">Mulai dari orang spesialnya</h1>
-              <p>Isi identitas dasar yang akan muncul di seluruh halaman kado.</p>
+              <p>Pilih suasana kado, lalu isi identitas dasar yang akan muncul di seluruh halaman.</p>
             </div>
+            <fieldset class="theme-picker">
+              <legend>Pilih tema kado</legend>
+              <div class="theme-grid">
+                <label class="theme-card" data-theme-card="snoopy">
+                  <input type="radio" name="themeId" value="snoopy" checked>
+                  <span class="theme-card__preview theme-card__preview--snoopy">
+                    <img src="/assets/gifs/cozy.webp" alt="Preview tema Snoopy">
+                  </span>
+                  <span class="theme-card__copy"><b>Snoopy</b><small>Comic scrapbook yang cerah dan playful.</small></span>
+                  <span class="theme-swatches" aria-label="Palet tema Snoopy"><i style="--swatch:#e94238"></i><i style="--swatch:#f8d44c"></i><i style="--swatch:#7db7df"></i><i style="--swatch:#fff8df"></i></span>
+                  <span class="theme-check" aria-hidden="true">✓</span>
+                </label>
+                <label class="theme-card" data-theme-card="dubu-duu">
+                  <input type="radio" name="themeId" value="dubu-duu">
+                  <span class="theme-card__preview theme-card__preview--dubu"><img src="/assets/themes/dubu-duu/welcome.webp" alt="Preview tema Dubu dan Duu"></span>
+                  <span class="theme-card__copy"><b>Dubu &amp; Duu</b><small>Warm pastel yang lembut dan cozy.</small></span>
+                  <span class="theme-swatches" aria-label="Palet tema Dubu dan Duu"><i style="--swatch:#e8897d"></i><i style="--swatch:#f4d782"></i><i style="--swatch:#b9d8e6"></i><i style="--swatch:#fff4e7"></i></span>
+                  <span class="theme-check" aria-hidden="true">✓</span>
+                </label>
+              </div>
+              <p>Semua isi kadomu tetap sama saat tema diganti. Hanya karakter dan palet warnanya yang berubah.</p>
+            </fieldset>
             <div class="paper-form two-columns">
               <label class="field">
                 <span>Nama penerima</span>
@@ -236,9 +258,13 @@
                 <p class="publish-status" id="publish-status">DRAFT</p>
                 <h2>Kadomu siap?</h2>
                 <p>Publish akan membuat link gift dapat dibuka. Kamu tetap bisa mengeditnya lewat magic link ini.</p>
+                <div class="backend-theme-warning" id="backend-theme-warning" role="alert" hidden>
+                  Worker belum mendukung tema Dubu &amp; Duu. Deploy Worker schema v3 dahulu, lalu refresh Studio.
+                </div>
                 <div class="publish-errors" id="publish-errors" hidden></div>
                 <button class="comic-button comic-button--red" id="publish-button" type="button">Publish kado</button>
                 <div class="published-result" id="published-result" hidden>
+                  <p class="publish-sync-note" id="publish-sync-note"></p>
                   <label>Link gift</label>
                   <div class="copy-row"><input id="gift-url" readonly><button id="copy-gift-url" type="button">Copy</button></div>
                   <div class="qr-palette-picker">
@@ -303,15 +329,15 @@
     </article>
   </template>
 
-  <script src="/shared/project.js?v=20260820-9"></script>
-  <script src="/runtime-config.js?v=20260820-9"></script>
+  <script src="/shared/project.js?v=20260820-12"></script>
+  <script src="/runtime-config.js?v=20260820-12"></script>
   <script>
     if (["localhost", "127.0.0.1", "::1"].includes(location.hostname)) {
-      document.write('<script src="/dev/mock-api.js?v=20260820-9"><\/script>');
+      document.write('<script src="/dev/mock-api.js?v=20260820-12"><\/script>');
     }
   </script>
-  <script src="/shared/api.js?v=20260820-9"></script>
+  <script src="/shared/api.js?v=20260820-12"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer"></script>
-  <script src="/studio/app.js?v=20260820-9"></script>
+  <script src="/studio/app.js?v=20260820-12"></script>
 </body>
 </html>

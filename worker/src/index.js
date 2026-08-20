@@ -1,7 +1,10 @@
 import {
+  SCHEMA_VERSION,
+  SUPPORTED_THEME_IDS,
   MAX_WISH_LENGTH,
   PROJECT_ID_PATTERN,
   emptyProject,
+  normalizeThemeId,
   normalizeProject,
   publicProject,
   validatePublishedProject
@@ -408,6 +411,7 @@ async function adminProjectSummary(env, record) {
     sender: record.identity?.sender || "Belum diisi",
     birthdayDate: record.identity?.birthdayDate || "",
     status: record.status || "draft",
+    themeId: normalizeThemeId(record.themeId),
     source: record.source || "manual",
     galleryCount: Array.isArray(record.gallery) ? record.gallery.filter(item => item?.mediaUrl || item?.imageUrl).length : 0,
     wishEnabled: record.settings?.wishEnabled !== false,
@@ -525,7 +529,12 @@ async function route(request, env) {
     return new Response(null, { status: 204, headers: responseHeaders(request, env) });
   }
   if (!isAllowedOrigin(request.headers.get("Origin"), env)) throw new HttpError(403, "Origin tidak diizinkan.");
-  if (request.method === "GET" && path === "/api/health") return json(request, env, { ok: true, service: "snoopy-gift-api" });
+  if (request.method === "GET" && path === "/api/health") return json(request, env, {
+    ok: true,
+    service: "snoopy-gift-api",
+    schemaVersion: SCHEMA_VERSION,
+    themeIds: [...SUPPORTED_THEME_IDS]
+  });
 
   let match = path.match(/^\/api\/gift\/([^/]+)$/);
   if (request.method === "GET" && match) return handleGetGift(request, env, decodeURIComponent(match[1]).toLowerCase());

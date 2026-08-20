@@ -88,6 +88,7 @@ function tokenFromStudioUrl(url) {
 function completeProject(project) {
   return {
     ...project,
+    themeId: "dubu-duu",
     identity: { recipient: "Penerima", sender: "Pengirim", birthdayDate: "2030-01-01", subtitle: "Empat kejutan untukmu." },
     warmWish: { message: "Semoga selalu bahagia dan sehat.", signature: "Pengirim" },
     gallery: [{ id: "photo-1", imageUrl: "https://media.test/photo.webp", title: "Birthday star", story: "A little portrait." }],
@@ -153,9 +154,11 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
   });
   assert.equal(publish.response.status, 200);
   assert.equal(publish.payload.project.status, "published");
+  assert.equal(publish.payload.project.themeId, "dubu-duu");
 
   const incompleteEdit = {
     ...publish.payload.project,
+    themeId: "snoopy",
     gallery: [...publish.payload.project.gallery, { id: "media-empty", mediaType: "image", mediaUrl: "", title: "", story: "" }],
     letter: { ...publish.payload.project.letter, greeting: "" }
   };
@@ -171,9 +174,11 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
   const publicDuringEdit = await call(env, `/api/gift/${projectId}`);
   assert.equal(publicDuringEdit.response.status, 200);
   assert.equal(publicDuringEdit.payload.project.letter.greeting, "Untuk kamu yang berulang tahun,");
+  assert.equal(publicDuringEdit.payload.project.themeId, "dubu-duu");
 
   const studioDuringEdit = await call(env, `/api/studio/${projectId}`, { token: editToken });
   assert.equal(studioDuringEdit.payload.project.letter.greeting, "");
+  assert.equal(studioDuringEdit.payload.project.themeId, "snoopy");
 
   const publicGift = await call(env, `/api/gift/${projectId}`);
   assert.equal(publicGift.response.status, 200);
@@ -199,6 +204,24 @@ test("complete buyer and recipient flow uses KV and keeps private fields private
   assert.equal(adminList.response.status, 200);
   assert.equal(adminList.payload.stats.published, 1);
   assert.equal(adminList.payload.projects[0].studioUrl, created.payload.studioUrl);
+  assert.equal(adminList.payload.projects[0].themeId, "dubu-duu");
+});
+
+test("worker normalizes legacy and unsupported theme IDs", async () => {
+  const env = makeEnv();
+  const created = await call(env, "/api/admin/projects", { method: "POST", token: env.ADMIN_SECRET, body: { idempotencyKey: "theme-normalize-001" } });
+  const projectId = created.payload.projectId;
+  const token = tokenFromStudioUrl(created.payload.studioUrl);
+  const studio = await call(env, `/api/studio/${projectId}`, { token });
+  assert.equal(studio.payload.project.schemaVersion, 3);
+  assert.equal(studio.payload.project.themeId, "snoopy");
+
+  const saved = await call(env, `/api/studio/${projectId}`, {
+    method: "PUT",
+    token,
+    body: { project: { ...studio.payload.project, themeId: "unknown-theme" }, status: "draft" }
+  });
+  assert.equal(saved.payload.project.themeId, "snoopy");
 });
 
 test("archive, restore, and permanent delete control public access and cleanup", async () => {
@@ -236,6 +259,8 @@ test("admin authentication and CORS reject unauthorized requests", async () => {
   const allowed = await call(env, "/api/health");
   assert.equal(allowed.response.status, 200);
   assert.equal(allowed.response.headers.get("Access-Control-Allow-Origin"), "https://gift.test");
+  assert.equal(allowed.payload.schemaVersion, 3);
+  assert.deepEqual(allowed.payload.themeIds, ["snoopy", "dubu-duu"]);
 });
 
 test("configured preview origins and extension MIME fallbacks are supported", async () => {

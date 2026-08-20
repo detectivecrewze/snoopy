@@ -67,6 +67,12 @@
         : jsonRequest(`/api/gift/${encodeURIComponent(this.projectId)}`);
     }
 
+    getHealth() {
+      return this.mock
+        ? Promise.resolve({ ok: true, schemaVersion: root.GiftProject?.SCHEMA_VERSION || 1, themeIds: Object.keys(root.GiftProject?.THEMES || {}) })
+        : jsonRequest("/api/health");
+    }
+
     getStudio() {
       return this.mock
         ? this.mock.getStudio(this.projectId, this.token)

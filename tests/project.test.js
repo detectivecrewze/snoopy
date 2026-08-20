@@ -14,7 +14,8 @@ test("normalizes project payload and removes unsupported gallery fields", () => 
     letter: { body: "First paragraph.\n\nSecond paragraph." }
   });
 
-  assert.equal(project.schemaVersion, 2);
+  assert.equal(project.schemaVersion, 3);
+  assert.equal(project.themeId, "snoopy");
   assert.equal(project.identity.recipient, "Penerima");
   assert.deepEqual(project.gallery[0], { id: "media-1", mediaType: "image", mediaUrl: "/photo.png", imageUrl: "/photo.png", title: "Portrait", story: "Story" });
   assert.equal(project.music.audioUrl, "/song.mp3");
@@ -78,6 +79,41 @@ test("gallery room title and subtitle are customer-editable project data", () =>
   });
   assert.equal(project.galleryRoom.title, "My Portraits");
   assert.equal(project.galleryRoom.subtitle, "A collection of my favorite photos.");
+});
+
+test("schema v2 and unknown themes safely normalize to Snoopy", () => {
+  const legacy = Project.normalizeProject({ schemaVersion: 2, projectId: "legacy-theme" });
+  const unknown = Project.normalizeProject({ schemaVersion: 3, projectId: "unknown-theme", themeId: "other" });
+  assert.equal(legacy.schemaVersion, 3);
+  assert.equal(legacy.themeId, "snoopy");
+  assert.equal(unknown.themeId, "snoopy");
+});
+
+test("Dubu and Duu changes presentation without changing customer content", () => {
+  const input = {
+    projectId: "dubu-demo",
+    themeId: "dubu-duu",
+    identity: { recipient: "Rani", sender: "Dio", birthdayDate: "2030-01-01" },
+    gallery: [{ mediaUrl: "https://media.example/photo.webp", title: "Portrait" }],
+    music: { tracks: [{ audioUrl: "https://media.example/song.mp3", title: "Song" }] },
+    letter: { greeting: "Dear Rani", paragraphs: ["Happy birthday"], signoff: "Dio" }
+  };
+  const project = Project.normalizeProject(input);
+  assert.equal(project.themeId, "dubu-duu");
+  assert.equal(project.identity.recipient, "Rani");
+  assert.equal(project.gallery[0].title, "Portrait");
+  assert.equal(project.music.tracks[0].title, "Song");
+  assert.equal(project.letter.paragraphs[0], "Happy birthday");
+});
+
+test("theme manifest has ten isolated asset slots per theme", () => {
+  const expectedSlots = ["welcome", "wishWriting", "wish", "hug", "cozy", "memoriesLogo", "dance", "letterLogo", "letter", "finale"].sort();
+  assert.deepEqual(Object.keys(Project.THEMES.snoopy.gifs).sort(), expectedSlots);
+  assert.deepEqual(Object.keys(Project.THEMES["dubu-duu"].gifs).sort(), expectedSlots);
+  assert.ok(Object.values(Project.THEMES.snoopy.gifs).every(source => source.startsWith("/assets/gifs/")));
+  assert.ok(Object.values(Project.THEMES["dubu-duu"].gifs).every(source => source.startsWith("/assets/themes/dubu-duu/")));
+  assert.equal(new Set(Object.values(Project.THEMES["dubu-duu"].gifs)).size, 7);
+  assert.equal(Project.getTheme("dubu-duu").palette.red, "#e8897d");
 });
 
 test("reads project id from gift and studio deep links", () => {

@@ -68,6 +68,8 @@
   let qrPaletteKey = "berry";
   let studioReady = false;
   let pendingDeleteMediaId = "";
+  let hasUnpublishedChanges = false;
+  let workerSupportsThemes = true;
 
   function showState(title, message, options = {}) {
     $("#studio-state").hidden = false;
@@ -102,6 +104,8 @@
   }
 
   function fillForm(project) {
+    const themeInput = $(`input[name="themeId"][value="${project.themeId}"]`) || $('input[name="themeId"][value="snoopy"]');
+    if (themeInput) themeInput.checked = true;
     $("#recipient").value = project.identity.recipient;
     $("#sender").value = project.identity.sender;
     $("#birthday-date-input").value = /^\d{4}-\d{2}-\d{2}$/.test(project.identity.birthdayDate) ? project.identity.birthdayDate : "";
@@ -132,6 +136,7 @@
     }
     draft = Project.normalizeProject({
       ...draft,
+      themeId: $('input[name="themeId"]:checked')?.value || Project.DEFAULT_THEME_ID,
       identity: {
         recipient: $("#recipient").value,
         sender: $("#sender").value,
@@ -161,6 +166,7 @@
   function scheduleSave() {
     if (!studioReady) return;
     readForm();
+    if (draft.status === "published") hasUnpublishedChanges = true;
     setSaveState("saving", "Menyimpan perubahan...");
     window.clearTimeout(saveTimer);
     // Autosave must never run the full publish validation. A published gift can
@@ -169,17 +175,27 @@
       saveDraft("draft").catch(() => {});
     }, 750);
     schedulePreview();
+    updatePublishedResult();
   }
 
   async function saveDraft(status = "draft") {
     window.clearTimeout(saveTimer);
     readForm();
+    const intendedThemeId = draft.themeId;
     try {
       const payload = await api.saveStudio(draft, status);
       draft = Project.normalizeProject(payload.project || draft, projectId);
+      const themeWasDropped = intendedThemeId !== Project.DEFAULT_THEME_ID && draft.themeId !== intendedThemeId;
+      if (themeWasDropped) {
+        workerSupportsThemes = false;
+        draft.themeId = intendedThemeId;
+        updateBackendThemeWarning();
+        if (status === "published") throw new Error("Tema belum dapat dipublish karena Worker production masih memakai schema lama. Deploy Worker v3 lalu coba lagi.");
+      }
+      if (status === "published") hasUnpublishedChanges = false;
       setSaveState("saved", status === "published"
         ? "Kado sudah dipublikasikan"
-        : draft.status === "published" ? "Perubahan tersimpan" : "Draft tersimpan");
+        : draft.status === "published" ? "Draft perubahan tersimpan, belum live" : "Draft tersimpan");
       updatePublishedResult(payload.giftUrl);
       return payload;
     } catch (error) {
@@ -887,19 +903,42 @@
 
   function updatePublishedResult(explicitUrl) {
     const published = draft.status === "published";
-    $("#publish-status").textContent = published ? "PUBLISHED" : "DRAFT";
+    const pending = published && hasUnpublishedChanges;
+    $("#publish-status").textContent = pending ? "CHANGES NOT LIVE" : published ? "PUBLISHED" : "DRAFT";
     $("#published-result").hidden = !published;
-    $("#publish-button").textContent = published ? "Publish perubahan" : "Publish kado";
+    $("#publish-button").textContent = pending ? "Publish perubahan" : published ? "Sudah dipublish" : "Publish kado";
+    $("#publish-button").disabled = published && !pending;
     if (!published) return;
     const url = explicitUrl || giftUrl();
     $("#gift-url").value = url;
     $("#open-public-gift").href = url;
+    const syncNote = $("#publish-sync-note");
+    syncNote.dataset.state = pending ? "pending" : "live";
+    syncNote.textContent = pending
+      ? "Preview terbaru belum ada di link gift. Publish perubahan dahulu sebelum menyalin link atau QR."
+      : "Link gift sudah memakai versi terbaru yang dipublish.";
+    $("#copy-gift-url").disabled = pending;
+    $("#download-qr").disabled = pending;
+    $("#open-public-gift").classList.toggle("is-disabled", pending);
+    $("#open-public-gift").setAttribute("aria-disabled", String(pending));
     renderQr(url);
+  }
+
+  function updateBackendThemeWarning() {
+    const selectedTheme = $('input[name="themeId"]:checked')?.value || draft.themeId;
+    $("#backend-theme-warning").hidden = workerSupportsThemes || selectedTheme === Project.DEFAULT_THEME_ID;
   }
 
   async function publishProject() {
     clearErrors();
     readForm();
+    if (!workerSupportsThemes && draft.themeId !== Project.DEFAULT_THEME_ID) {
+      updateBackendThemeWarning();
+      const box = $("#publish-errors");
+      box.textContent = "Tema Dubu & Duu belum bisa dipublish karena Worker production belum schema v3.";
+      box.hidden = false;
+      return;
+    }
     const validation = Project.validateProject(draft, { forPublish: true });
     if (!validation.valid) {
       const box = $("#publish-errors");
@@ -925,8 +964,7 @@
       box.textContent = error.message;
       box.hidden = false;
     } finally {
-      button.disabled = false;
-      button.textContent = draft.status === "published" ? "Publish perubahan" : "Publish kado";
+      updatePublishedResult();
     }
   }
 
@@ -979,6 +1017,7 @@
     });
     $("#studio-form").addEventListener("change", event => {
       if (event.target.type !== "file") scheduleSave();
+      if (event.target.name === "themeId") updateBackendThemeWarning();
     });
     $("#next-step").addEventListener("click", () => goToStep(currentStep + 1));
     $("#previous-step").addEventListener("click", () => goToStep(currentStep - 1, { skipValidation: true }));
@@ -1057,6 +1096,7 @@
     });
     $("#publish-button").addEventListener("click", publishProject);
     $("#copy-gift-url").addEventListener("click", async () => {
+      if (hasUnpublishedChanges) return;
       await navigator.clipboard.writeText($("#gift-url").value);
       $("#copy-gift-url").textContent = "Copied";
       window.setTimeout(() => { $("#copy-gift-url").textContent = "Copy"; }, 1200);
@@ -1082,12 +1122,16 @@
     api = new window.GiftApi(projectId, token);
     showState("Membuka meja kerja...", "Sebentar, kami sedang menyiapkan draft kadomu.");
     try {
-      const payload = await api.getStudio();
+      const [payload, health] = await Promise.all([api.getStudio(), api.getHealth().catch(() => null)]);
+      workerSupportsThemes = Number(health?.schemaVersion || 0) >= Project.SCHEMA_VERSION
+        && Array.isArray(health?.themeIds)
+        && health.themeIds.includes("dubu-duu");
       draft = Project.normalizeProject(payload.project || payload, projectId);
       fillForm(draft);
       await loadCatalog();
       bindEvents();
       showStudio();
+      updateBackendThemeWarning();
       goToStep(1, { skipValidation: true });
     } catch (error) {
       const unauthorized = error.status === 401 || error.status === 403;

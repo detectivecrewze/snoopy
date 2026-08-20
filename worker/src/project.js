@@ -1,8 +1,10 @@
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const MAX_GALLERY_ITEMS = 15;
 export const MAX_MUSIC_TRACKS = 3;
 export const MAX_WISH_LENGTH = 280;
 export const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,63}$/;
+export const DEFAULT_THEME_ID = "snoopy";
+export const SUPPORTED_THEME_IDS = new Set(["snoopy", "dubu-duu"]);
 
 function cleanText(value, fallback = "", maximum = 10000) {
   if (typeof value !== "string") return fallback;
@@ -16,11 +18,17 @@ function cleanMediaUrl(value) {
   return "";
 }
 
+export function normalizeThemeId(value) {
+  const themeId = cleanText(value, DEFAULT_THEME_ID, 40).toLowerCase();
+  return SUPPORTED_THEME_IDS.has(themeId) ? themeId : DEFAULT_THEME_ID;
+}
+
 export function emptyProject(projectId) {
   return {
     schemaVersion: SCHEMA_VERSION,
     projectId,
     status: "draft",
+    themeId: DEFAULT_THEME_ID,
     identity: {
       recipient: "",
       sender: "",
@@ -81,6 +89,7 @@ export function normalizeProject(input, projectId, existing = null) {
     schemaVersion: SCHEMA_VERSION,
     projectId,
     status: source.status === "published" ? "published" : "draft",
+    themeId: normalizeThemeId(source.themeId),
     identity: {
       recipient: cleanText(identity.recipient, "", 80),
       sender: cleanText(identity.sender, "", 80),
@@ -137,6 +146,7 @@ export function publicProject(record) {
     schemaVersion: normalized.schemaVersion,
     projectId: normalized.projectId,
     status: normalized.status,
+    themeId: normalized.themeId,
     identity: normalized.identity,
     warmWish: normalized.warmWish,
     galleryRoom: normalized.galleryRoom,

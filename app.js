@@ -73,20 +73,42 @@
     document.title = `A Birthday Surprise for ${identity.recipient || "You"}`;
   }
 
+  function applyTheme() {
+    const theme = Project.getTheme(config.themeId);
+    const root = document.documentElement;
+    Object.entries(theme.palette).forEach(([name, value]) => {
+      const cssName = name.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+      root.style.setProperty(`--${cssName}`, value);
+    });
+    document.body.dataset.theme = theme.id;
+    const themeColor = $("meta[name='theme-color']");
+    if (themeColor) themeColor.content = theme.palette.yellow;
+  }
+
   function loadGifSlots() {
+    const theme = Project.getTheme(config.themeId);
     $$("[data-gif]").forEach(slot => {
-      const source = Project.THEME_GIFS[slot.dataset.gif];
+      const key = slot.dataset.gif;
+      const source = theme.gifs[key];
       const image = $("img", slot);
-      if (!source || !image) return;
-      image.onload = () => { image.hidden = false; };
-      image.onerror = () => { image.hidden = true; };
-      if (image.src !== new URL(source, location.origin).href) image.src = source;
+      if (!image) return;
+      image.onload = null;
+      image.onerror = null;
+      image.hidden = true;
+      image.removeAttribute("src");
+      image.alt = theme.alt[key] || "";
+      slot.dataset.assetState = source ? "loading" : "placeholder";
+      if (!source) return;
+      image.onerror = () => { image.hidden = true; slot.dataset.assetState = "placeholder"; };
+      image.onload = () => { image.hidden = false; slot.dataset.assetState = "ready"; };
+      image.src = source;
     });
   }
 
   function burstConfetti(count = 70) {
     const layer = $("#confetti-layer");
-    const colors = ["#e94238", "#f8d44c", "#7db7df", "#ffffff", "#171717"];
+    const palette = Project.getTheme(config?.themeId).palette;
+    const colors = [palette.red, palette.yellow, palette.blue, palette.paper, palette.ink];
     for (let index = 0; index < count; index += 1) {
       const piece = document.createElement("i");
       piece.className = "confetti";
@@ -241,6 +263,7 @@
   function applyProject(input) {
     config = Project.normalizeProject(input, projectId);
     if (!api && previewMode) api = { submitWish: async wish => ({ wish }) };
+    applyTheme();
     fillContent();
     loadGifSlots();
     setupMemories();

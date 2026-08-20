@@ -20,6 +20,7 @@ test("studio exposes seven wizard steps and dynamic runtime configuration", () =
   assert.match(studioApp, /Membaca foto/);
   assert.match(api, /timeoutMs: 60000/);
   assert.match(api, /Upload terlalu lama dan dihentikan/);
+  assert.match(api, /getHealth\(\)/);
 });
 
 test("gift production shell no longer loads customer config.js", () => {
@@ -28,6 +29,26 @@ test("gift production shell no longer loads customer config.js", () => {
   assert.match(gift, /\/shared\/project\.js/);
   assert.match(gift, /\/runtime-config\.js/);
   assert.doesNotMatch(gift, /gif-slot--memory-room/);
+});
+
+test("Studio and shared renderer expose the Snoopy and Dubu & Duu theme system", () => {
+  const studio = read("studio/index.html");
+  const studioApp = read("studio/app.js");
+  const giftApp = read("app.js");
+  const project = read("shared/project.js");
+  assert.equal((studio.match(/name="themeId"/g) || []).length, 2);
+  assert.match(studio, /value="snoopy"/);
+  assert.match(studio, /value="dubu-duu"/);
+  assert.match(studioApp, /themeId:/);
+  assert.match(studioApp, /hasUnpublishedChanges/);
+  assert.match(studioApp, /workerSupportsThemes/);
+  assert.match(studio, /id="backend-theme-warning"/);
+  assert.match(studio, /id="publish-sync-note"/);
+  assert.match(giftApp, /Project\.getTheme\(config\.themeId\)/);
+  assert.match(giftApp, /dataset\.assetState = source \? "loading" : "placeholder"/);
+  assert.doesNotMatch(giftApp, /THEME_GIFS/);
+  assert.match(project, /const SCHEMA_VERSION = 3/);
+  assert.match(project, /"dubu-duu"/);
 });
 
 test("music catalog supports covers, selection, and audio preview", () => {
@@ -78,6 +99,8 @@ test("admin dashboard includes secure login, generator, filters, and destructive
   assert.match(adminApp, /DEV_HOSTS/);
   assert.match(adminApp, /\/studio\/index\.html/);
   assert.match(adminApp, /params\.set\("project"/);
+  assert.match(admin, /class="theme-pill"/);
+  assert.match(adminApp, /Project\.normalizeThemeId/);
 });
 
 test("runtime config does not contain a secret", () => {
@@ -97,5 +120,6 @@ test("Vercel is forced to deploy the allowlisted static dist output", () => {
   ]);
   assert.match(build, /assets\/gifs/);
   assert.match(build, /assets\/data/);
+  assert.match(build, /assets\/themes/);
   assert.doesNotMatch(build, /worker|tests|fixtures|server\.js|assets\/photos|assets\/audio/);
 });

@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "projectId": "sample-demo",
   "status": "published",
+  "themeId": "snoopy",
   "identity": {
     "recipient": "Nama Penerima",
     "sender": "Nama Pengirim",

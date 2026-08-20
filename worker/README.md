@@ -66,3 +66,9 @@ Seluruh endpoint berikut memakai `Authorization: Bearer ADMIN_SECRET`:
 - `DELETE /api/admin/projects/:id` untuk menghapus project, wish, rate key, idempotency mapping, dan objek R2 terkait.
 
 Project yang diarsipkan tidak dapat dibuka melalui gift publik maupun studio sampai dipulihkan.
+
+## Theme schema v3
+
+Project menyimpan `themeId` dengan allowlist `snoopy` atau `dubu-duu`. Schema v2, nilai kosong, dan nilai yang tidak dikenal otomatis dinormalisasi ke `snoopy`; KV lama tidak perlu dimigrasikan manual. Deploy Worker v3 sebelum frontend Vercel agar Studio dan gift publik menerima field tema secara konsisten.
+
+Endpoint `GET /api/health` mengembalikan `schemaVersion` serta `themeIds`. Studio memakai metadata ini untuk mencegah tema baru dipublish ke Worker lama yang masih membuang `themeId`.

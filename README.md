@@ -1,4 +1,4 @@
-# Snoopy Gift Studio
+# Birthday Gift Studio
 
 Frontend Vanilla HTML, CSS, dan JavaScript untuk gift page dinamis serta studio customer tujuh langkah. Backend production berada di `worker/` dan memakai Cloudflare KV serta R2.
 
@@ -44,9 +44,9 @@ Penghapusan permanen turut membersihkan config project, wish inbox, idempotency 
 
 ## Dynamic project contract
 
-Customer content menggunakan schema version 2 dengan bagian `identity`, `warmWish`, `galleryRoom`, `gallery`, `music`, `letter`, dan `settings`. `galleryRoom` menyimpan judul serta deskripsi halaman media yang dapat dinamai customer. Schema v1 dengan satu lagu tetap dimigrasikan otomatis saat dibaca. Gift publik mengambil data dari `GET /api/gift/:id`; studio menggunakan endpoint `/api/studio/:id`, `/api/upload`, dan `/api/wishes/:id` melalui adapter bersama.
+Customer content menggunakan schema version 3 dengan `themeId` serta bagian `identity`, `warmWish`, `galleryRoom`, `gallery`, `music`, `letter`, dan `settings`. Nilai `themeId` yang didukung adalah `snoopy` dan `dubu-duu`. Project schema v2, project tanpa tema, atau nilai tema yang tidak dikenal otomatis dinormalisasi ke `snoopy`, tanpa migrasi KV manual. `galleryRoom` menyimpan judul serta deskripsi halaman media yang dapat dinamai customer. Schema lama dengan satu lagu tetap dimigrasikan otomatis saat dibaca. Gift publik mengambil data dari `GET /api/gift/:id`; studio menggunakan endpoint `/api/studio/:id`, `/api/upload`, dan `/api/wishes/:id` melalui adapter bersama.
 
-GIF dan visual Snoopy adalah aset tema statis. Data penerima, pengirim, tanggal, ucapan, galeri, lagu, dan surat tidak disimpan di HTML gift atau JavaScript production.
+Manifest tema berada di `shared/project.js`. Snoopy memakai aset lokal di `assets/gifs/`, sementara tujuh aset Dubu & Duu berada di `assets/themes/dubu-duu/` dan dipetakan ke sepuluh slot pengalaman. Renderer tetap menyediakan placeholder netral jika suatu aset dilepas dan tidak pernah fallback ke Snoopy. Data penerima, pengirim, tanggal, ucapan, galeri, lagu, dan surat tidak berubah ketika tema diganti.
 
 Galeri menerima maksimal 15 media: JPG, PNG, dan WEBP maksimal 8 MB sebelum kompresi, serta MP4, WEBM, atau MOV maksimal 20 MB. Video disimpan di R2 dan tampil autoplay, loop, muted, serta playsinline. Generator QR menyediakan empat palet dan mempertahankan QR standar di tengah pola hati dekoratif agar tetap mudah dipindai.
 

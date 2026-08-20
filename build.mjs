@@ -21,7 +21,8 @@ const directories = [
   "studio",
   "admin",
   "assets/gifs",
-  "assets/data"
+  "assets/data",
+  "assets/themes"
 ];
 
 await rm(output, { recursive: true, force: true });
@@ -36,5 +37,6 @@ for (const directory of directories) {
 }
 
 await rm(resolve(output, "assets/gifs/README.md"), { force: true });
+await rm(resolve(output, "assets/themes/dubu-duu/README.md"), { force: true });
 
 console.log("Static Vercel output dibuat di dist/.");
