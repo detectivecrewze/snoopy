@@ -171,19 +171,26 @@
     return draft;
   }
 
-  function scheduleSave() {
+  function scheduleSave(immediate = false) {
     if (!studioReady) return;
-    readForm();
     if (draft.status === "published") hasUnpublishedChanges = true;
     setSaveState("saving", "Menyimpan perubahan...");
     window.clearTimeout(saveTimer);
+    if (immediate) {
+      readForm();
+      saveDraft("draft").catch(() => {});
+      if (currentStep === 7) schedulePreview();
+      updatePublishedResult();
+      return;
+    }
     // Autosave must never run the full publish validation. A published gift can
     // temporarily be incomplete while its owner replaces media or edits a field.
     saveTimer = window.setTimeout(() => {
+      readForm();
       saveDraft("draft").catch(() => {});
-    }, 750);
-    schedulePreview();
-    updatePublishedResult();
+      if (currentStep === 7) schedulePreview();
+      updatePublishedResult();
+    }, 700);
   }
 
   async function performSaveDraft(status = "draft") {
@@ -360,12 +367,10 @@
       $(".gallery-title", node).addEventListener("input", event => {
         const current = currentGalleryItem(itemId);
         if (current) current.title = event.target.value;
-        scheduleSave();
       });
       $(".gallery-story", node).addEventListener("input", event => {
         const current = currentGalleryItem(itemId);
         if (current) current.story = event.target.value;
-        scheduleSave();
       });
       $(".remove-photo", node).addEventListener("click", () => {
         requestDeleteGalleryItem(itemId, index);
@@ -1245,7 +1250,7 @@
       scheduleSave();
     });
     $("#studio-form").addEventListener("change", event => {
-      if (event.target.type !== "file") scheduleSave();
+      if (event.target.type !== "file") scheduleSave(true);
       if (event.target.name === "themeId") updateBackendThemeWarning();
     });
     $("#next-step").addEventListener("click", () => goToStep(currentStep + 1));
@@ -1301,7 +1306,7 @@
       $("#warm-message").value = WARM_PRESETS[button.dataset.warmPreset] || "";
       $("#warm-count").textContent = String($("#warm-message").value.length);
       setError("warmWish", "");
-      scheduleSave();
+      scheduleSave(true);
     }));
     $$('[data-letter-preset]').forEach(button => button.addEventListener("click", () => {
       const createPreset = LETTER_PRESETS[button.dataset.letterPreset];
@@ -1317,7 +1322,7 @@
       setError("greeting", "");
       setError("letter", "");
       setError("signoff", "");
-      scheduleSave();
+      scheduleSave(true);
     }));
     $$('[data-music-source]').forEach(button => button.addEventListener("click", () => selectMusicSource(button.dataset.musicSource)));
     $("#music-search").addEventListener("input", event => renderCatalog(event.target.value));

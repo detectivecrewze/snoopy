@@ -91,6 +91,9 @@
       const source = theme.gifs[key];
       const image = $("img", slot);
       if (!image) return;
+      if (image.getAttribute("src") === source && !image.hidden && slot.dataset.assetState === "ready") {
+        return;
+      }
       image.onload = null;
       image.onerror = null;
       image.hidden = true;
