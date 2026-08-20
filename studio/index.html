@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f8d44c">
   <meta name="gift-api-base" content="">
   <title>Birthday Gift Studio</title>
+  <link rel="icon" type="image/webp" href="/assets/gifs/dance.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
@@ -382,7 +383,26 @@
         <i class="uploading-badge" hidden>Mengunggah...</i>
       </div>
       <div class="gallery-fields">
-        <div class="gallery-item-head"><strong>Media <span class="gallery-number">1</span></strong></div>
+        <div class="gallery-item-head">
+          <div class="gallery-head-left">
+            <strong>Media <span class="gallery-number">1</span></strong>
+            <span class="first-photo-badge" hidden>★ Pertama</span>
+          </div>
+          <div class="gallery-nav-controls" aria-label="Urutan media">
+            <button class="gallery-nav-btn make-first-btn" type="button" title="Jadikan foto paling pertama (Cover)" aria-label="Jadikan foto pertama">
+              <span class="star-icon" aria-hidden="true">★</span>
+              <span>Jadikan Utama</span>
+            </button>
+            <div class="gallery-nav-arrows">
+              <button class="gallery-nav-btn move-up-btn" type="button" title="Pindahkan ke atas / sebelumnya" aria-label="Pindahkan ke atas">
+                <span aria-hidden="true">▲</span>
+              </button>
+              <button class="gallery-nav-btn move-down-btn" type="button" title="Pindahkan ke bawah / setelahnya" aria-label="Pindahkan ke bawah">
+                <span aria-hidden="true">▼</span>
+              </button>
+            </div>
+          </div>
+        </div>
         <p class="photo-upload-error" role="alert" hidden></p>
         <label class="field"><span>Judul foto</span><input class="gallery-title" maxlength="100" placeholder="Contoh: Senyum favorit"></label>
         <label class="field"><span>Cerita kecil</span><textarea class="gallery-story" rows="3" maxlength="350" placeholder="Apa yang ingin kamu ceritakan tentang foto ini?"></textarea></label>

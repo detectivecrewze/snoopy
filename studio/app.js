@@ -336,6 +336,49 @@
     scheduleSave();
   }
 
+  function syncGalleryInputsFromDom() {
+    const editor = $("#gallery-editor");
+    if (!editor) return;
+    $$(".gallery-item", editor).forEach((node, idx) => {
+      const id = node.dataset.galleryId;
+      const item = draft.gallery.find(entry => entry.id === id) || draft.gallery[idx];
+      if (item) {
+        const titleInput = $(".gallery-title", node);
+        const storyInput = $(".gallery-story", node);
+        if (titleInput) item.title = titleInput.value;
+        if (storyInput) item.story = storyInput.value;
+      }
+    });
+  }
+
+  function moveGalleryItem(fromIndex, toIndex) {
+    syncGalleryInputsFromDom();
+    if (fromIndex < 0 || fromIndex >= draft.gallery.length) return;
+    if (toIndex < 0 || toIndex >= draft.gallery.length) return;
+    if (fromIndex === toIndex) return;
+    const [moved] = draft.gallery.splice(fromIndex, 1);
+    draft.gallery.splice(toIndex, 0, moved);
+    renderGallery();
+    scheduleSave();
+    const movedId = moved?.id;
+    if (movedId) {
+      requestAnimationFrame(() => $(`#gallery-editor [data-gallery-id="${movedId}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+    }
+  }
+
+  function makeFirstGalleryItem(fromIndex) {
+    syncGalleryInputsFromDom();
+    if (fromIndex <= 0 || fromIndex >= draft.gallery.length) return;
+    const [moved] = draft.gallery.splice(fromIndex, 1);
+    draft.gallery.unshift(moved);
+    renderGallery();
+    scheduleSave();
+    const movedId = moved?.id;
+    if (movedId) {
+      requestAnimationFrame(() => $(`#gallery-editor [data-gallery-id="${movedId}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+    }
+  }
+
   function renderGallery() {
     const editor = $("#gallery-editor");
     const template = $("#gallery-item-template");
@@ -345,6 +388,31 @@
       const itemId = item.id;
       node.dataset.galleryId = itemId;
       $(".gallery-number", node).textContent = String(index + 1).padStart(2, "0");
+
+      // Setup Photo Navigator Controls
+      const firstBadge = $(".first-photo-badge", node);
+      const makeFirstBtn = $(".make-first-btn", node);
+      const moveUpBtn = $(".move-up-btn", node);
+      const moveDownBtn = $(".move-down-btn", node);
+      const navControls = $(".gallery-nav-controls", node);
+
+      if (firstBadge) firstBadge.hidden = index !== 0;
+      if (makeFirstBtn) {
+        makeFirstBtn.hidden = index === 0 || draft.gallery.length <= 1;
+        makeFirstBtn.addEventListener("click", () => makeFirstGalleryItem(index));
+      }
+      if (moveUpBtn) {
+        moveUpBtn.disabled = index === 0;
+        moveUpBtn.addEventListener("click", () => moveGalleryItem(index, index - 1));
+      }
+      if (moveDownBtn) {
+        moveDownBtn.disabled = index === draft.gallery.length - 1;
+        moveDownBtn.addEventListener("click", () => moveGalleryItem(index, index + 1));
+      }
+      if (navControls && draft.gallery.length <= 1) {
+        navControls.hidden = true;
+      }
+
       const image = $("img", node);
       const video = $("video", node);
       const upload = $(".polaroid-upload", node);

@@ -30,7 +30,7 @@
         dance: "/assets/gifs/dance.webp",
         cozy: "/assets/gifs/cozy.webp",
         memoriesLogo: "/assets/gifs/memories-logo.webp",
-        letterLogo: "/assets/gifs/letter-logo.gif",
+        letterLogo: "https://media.tenor.com/zBbLEMIyWYgAAAAm/snoopy-peanuts.webp",
         letter: "/assets/gifs/letter.webp",
         finale: "/assets/gifs/finale.webp"
       }),

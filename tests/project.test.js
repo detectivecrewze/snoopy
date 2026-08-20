@@ -110,7 +110,7 @@ test("theme manifest has ten isolated asset slots per theme", () => {
   const expectedSlots = ["welcome", "wishWriting", "wish", "hug", "cozy", "memoriesLogo", "dance", "letterLogo", "letter", "finale"].sort();
   assert.deepEqual(Object.keys(Project.THEMES.snoopy.gifs).sort(), expectedSlots);
   assert.deepEqual(Object.keys(Project.THEMES["dubu-duu"].gifs).sort(), expectedSlots);
-  assert.ok(Object.values(Project.THEMES.snoopy.gifs).every(source => source.startsWith("/assets/gifs/")));
+  assert.ok(Object.values(Project.THEMES.snoopy.gifs).every(source => source.startsWith("/assets/gifs/") || /^https?:\/\//i.test(source)));
   assert.ok(Object.values(Project.THEMES["dubu-duu"].gifs).every(source => source.startsWith("/assets/themes/dubu-duu/")));
   assert.equal(new Set(Object.values(Project.THEMES["dubu-duu"].gifs)).size, 8);
   assert.equal(Project.getTheme("dubu-duu").palette.red, "#e8897d");

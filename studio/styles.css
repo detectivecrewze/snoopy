@@ -116,8 +116,20 @@ button { color: inherit; }
 .uploading-badge { position: absolute; inset: auto 8px 8px auto; padding: .35rem .55rem; border-radius: 6px; color: #fff; background: var(--blue-dark); font: 700 .6rem var(--display); }
 .photo-upload-error { margin: 0; padding: .7rem .8rem; border: 2px solid var(--red-dark); border-radius: 8px; color: var(--red-dark); background: #ffe8e5; font: 600 .72rem/1.4 var(--body); }
 .gallery-fields { display: grid; min-width: 0; align-content: start; gap: 14px; }
-.gallery-item-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+.gallery-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
 .gallery-item-head strong { font: 700 .9rem var(--display); }
+.gallery-head-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.first-photo-badge { display: inline-flex; align-items: center; padding: 2px 8px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--yellow); color: var(--ink); font: 700 0.58rem var(--display); letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 1.5px 1.5px 0 var(--ink); }
+.gallery-nav-controls { display: flex; align-items: center; gap: 6px; }
+.gallery-nav-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 4px 8px; border: 2px solid var(--ink); border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; font: 700 0.58rem var(--display); letter-spacing: 0.02em; box-shadow: 2px 2px 0 var(--ink); transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease; }
+.gallery-nav-btn:hover:not(:disabled) { background: #fff1a9; transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.gallery-nav-btn:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+.gallery-nav-btn:disabled { opacity: 0.32; cursor: not-allowed; background: #eae7df; box-shadow: none; border-color: rgba(23, 23, 23, 0.4); }
+.make-first-btn { color: #171717; background: #fffdf4; }
+.make-first-btn .star-icon { color: #d97706; font-size: 0.72rem; }
+.gallery-nav-arrows { display: flex; gap: 4px; }
+.move-up-btn, .move-down-btn { width: 28px; height: 28px; padding: 0; font-size: 0.65rem; }
+.move-up-btn:hover:not(:disabled), .move-down-btn:hover:not(:disabled) { background: var(--blue); }
 .remove-photo { position: absolute; top: -14px; right: -13px; z-index: 5; display: grid; width: 39px; height: 39px; place-items: center; padding: 0; border: 3px solid var(--ink); border-radius: 50%; color: #fff; background: var(--red); box-shadow: 3px 4px 0 var(--ink); cursor: pointer; transform: rotate(6deg); }
 .remove-photo span { font: 700 1.6rem/1 var(--display); transform: translateY(-1px); }
 .remove-photo:hover { background: var(--red-dark); box-shadow: 1px 2px 0 var(--ink); transform: translate(2px, 2px) rotate(-4deg); }

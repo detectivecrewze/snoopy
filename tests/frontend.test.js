@@ -189,3 +189,19 @@ test("Studio uses local cropper, CSS playback icons, and a Safari-safe date shel
   assert.match(read("shared/project.js"), /"dubu-duu"/);
   for (const source of [studio, studioApp, gift, giftApp]) assert.doesNotMatch(source, /▶|Ⅱ|⏸/);
 });
+
+test("Studio includes photo navigator controls for reordering and setting cover photo", () => {
+  const studio = read("studio/index.html");
+  const studioApp = read("studio/app.js");
+  const studioStyles = read("studio/styles.css");
+  assert.match(studio, /class="gallery-nav-controls"/);
+  assert.match(studio, /class="gallery-nav-btn make-first-btn"/);
+  assert.match(studio, /class="gallery-nav-btn move-up-btn"/);
+  assert.match(studio, /class="gallery-nav-btn move-down-btn"/);
+  assert.match(studio, /class="first-photo-badge"/);
+  assert.match(studioApp, /moveGalleryItem/);
+  assert.match(studioApp, /makeFirstGalleryItem/);
+  assert.match(studioApp, /syncGalleryInputsFromDom/);
+  assert.match(studioStyles, /\.gallery-nav-controls/);
+  assert.match(studioStyles, /\.first-photo-badge/);
+});

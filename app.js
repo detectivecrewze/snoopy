@@ -82,6 +82,8 @@
     document.body.dataset.theme = theme.id;
     const themeColor = $("meta[name='theme-color']");
     if (themeColor) themeColor.content = theme.palette.yellow;
+    const favicon = $("link[rel='icon']");
+    if (favicon && theme.gifs.dance) favicon.href = theme.gifs.dance;
   }
 
   function loadGifSlots() {
