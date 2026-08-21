@@ -98,7 +98,14 @@ test("music catalog supports covers, selection, and audio preview", () => {
   assert.match(studioApp, /previewCatalogTrack/);
   assert.match(studioApp, /selectCatalogTrack/);
   assert.match(studioApp, /MAX_MUSIC_TRACKS/);
-  assert.match(studioApp, /drawHeartQr/);
+  assert.match(studioApp, /drawStandardQr/);
+  assert.match(studioApp, /drawQrGiftCard/);
+  assert.doesNotMatch(studioApp, /drawHeartQr/);
+  assert.match(studioApp, /canvas\.width = 1080/);
+  assert.match(studioApp, /canvas\.height = 1350/);
+  assert.match(studioApp, /birthday-card-\$\{projectId\}\.png/);
+  assert.match(studio, /\/assets\/vendor\/qrcodejs\/qrcode\.min\.js/);
+  assert.doesNotMatch(studio, /cdnjs\.cloudflare\.com\/ajax\/libs\/qrcodejs/);
   assert.match(studioApp, /20 \* 1024 \* 1024/);
   assert.match(studioApp, /currentGalleryItem\(itemId\)/);
   assert.doesNotMatch(studioApp, /uploadGalleryMedia\(event\.target\.files\[0\], item, node\)/);

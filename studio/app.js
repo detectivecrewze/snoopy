@@ -68,6 +68,9 @@
   let activeMusicIndex = 0;
   let qrInstance = null;
   let qrPaletteKey = "berry";
+  let qrRenderVersion = 0;
+  let qrRenderPromise = Promise.resolve(null);
+  const qrIllustrationCache = new Map();
   let studioReady = false;
   let pendingDeleteMediaId = "";
   let pendingDeleteWishId = "";
@@ -1109,78 +1112,214 @@
       : `${location.origin}/gift/${encodeURIComponent(projectId)}`;
   }
 
-  function drawHeartQr(model, palette) {
-    const size = 720;
+  function roundedRectPath(context, x, y, width, height, radius) {
+    const safeRadius = Math.min(radius, width / 2, height / 2);
+    context.beginPath();
+    context.moveTo(x + safeRadius, y);
+    context.arcTo(x + width, y, x + width, y + height, safeRadius);
+    context.arcTo(x + width, y + height, x, y + height, safeRadius);
+    context.arcTo(x, y + height, x, y, safeRadius);
+    context.arcTo(x, y, x + width, y, safeRadius);
+    context.closePath();
+  }
+
+  function drawStandardQr(model, palette) {
+    const moduleCount = model.getModuleCount();
+    const quietModules = 4;
+    const moduleSize = Math.max(8, Math.floor(560 / (moduleCount + quietModules * 2)));
+    const size = (moduleCount + quietModules * 2) * moduleSize;
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
-    canvas.className = "heart-qr-canvas";
     const context = canvas.getContext("2d");
-    context.fillStyle = palette.paper;
+    context.imageSmoothingEnabled = false;
+    context.fillStyle = "#ffffff";
     context.fillRect(0, 0, size, size);
-
-    const moduleCount = model.getModuleCount();
-    const moduleSize = Math.max(6, Math.floor(390 / (moduleCount + 8)));
-    const qrSize = (moduleCount + 8) * moduleSize;
-    const quietX = Math.round((size - qrSize) / 2);
-    const quietY = 190;
-
-    const heart = new Path2D();
-    heart.moveTo(360, 682);
-    heart.bezierCurveTo(300, 622, 78, 474, 72, 252);
-    heart.bezierCurveTo(68, 108, 178, 45, 274, 82);
-    heart.bezierCurveTo(326, 102, 351, 142, 360, 174);
-    heart.bezierCurveTo(369, 142, 394, 102, 446, 82);
-    heart.bezierCurveTo(542, 45, 652, 108, 648, 252);
-    heart.bezierCurveTo(642, 474, 420, 622, 360, 682);
-    heart.closePath();
-
-    for (let y = 48; y <= 688; y += 11) {
-      for (let x = 48; x <= 672; x += 11) {
-        const insideQuietZone = x >= quietX - 8 && x <= quietX + qrSize + 8 && y >= quietY - 8 && y <= quietY + qrSize + 8;
-        if (!insideQuietZone && context.isPointInPath(heart, x, y)) {
-          context.beginPath();
-          context.fillStyle = Math.round((x + y) / 11) % 5 === 0 ? palette.accent : palette.ink;
-          context.arc(x, y, 2.5, 0, Math.PI * 2);
-          context.fill();
-        }
-      }
-    }
-
-    context.fillStyle = palette.paper;
-    context.fillRect(quietX, quietY, qrSize, qrSize);
-    const dataX = quietX + 4 * moduleSize;
-    const dataY = quietY + 4 * moduleSize;
     context.fillStyle = palette.ink;
     for (let row = 0; row < moduleCount; row += 1) {
       for (let column = 0; column < moduleCount; column += 1) {
         if (!model.isDark(row, column)) continue;
-        const x = dataX + column * moduleSize;
-        const y = dataY + row * moduleSize;
-        const finder = (row < 7 && column < 7) || (row < 7 && column >= moduleCount - 7) || (row >= moduleCount - 7 && column < 7);
-        if (finder) {
-          context.fillRect(x, y, moduleSize + .25, moduleSize + .25);
-        } else {
-          context.beginPath();
-          context.arc(x + moduleSize / 2, y + moduleSize / 2, moduleSize * .43, 0, Math.PI * 2);
-          context.fill();
-        }
+        const x = (column + quietModules) * moduleSize;
+        const y = (row + quietModules) * moduleSize;
+        context.fillRect(x, y, moduleSize, moduleSize);
       }
     }
     return canvas;
   }
 
-  function renderQr(url) {
+  function fitCanvasText(context, text, maxWidth) {
+    const value = String(text || "").trim();
+    if (context.measureText(value).width <= maxWidth) return value;
+    let shortened = value;
+    while (shortened.length > 1 && context.measureText(`${shortened}…`).width > maxWidth) shortened = shortened.slice(0, -1);
+    return `${shortened.trim()}…`;
+  }
+
+  function loadQrIllustration(themeId) {
+    const source = themeId === "dubu-duu"
+      ? "/assets/themes/dubu-duu/welcome.webp"
+      : "/assets/photos/snoopy-birthday-qr.jpg";
+    if (qrIllustrationCache.has(source)) return qrIllustrationCache.get(source);
+    const promise = new Promise(resolve => {
+      const image = new Image();
+      image.decoding = "async";
+      image.onload = async () => {
+        try { if (image.decode) await image.decode(); } catch (_) { /* Image is already usable after onload. */ }
+        resolve(image);
+      };
+      image.onerror = () => resolve(null);
+      image.src = source;
+    });
+    qrIllustrationCache.set(source, promise);
+    return promise;
+  }
+
+  function drawCoverImage(context, image, x, y, width, height) {
+    const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+    const drawWidth = image.naturalWidth * scale;
+    const drawHeight = image.naturalHeight * scale;
+    context.save();
+    roundedRectPath(context, x, y, width, height, 30);
+    context.clip();
+    context.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
+    context.restore();
+  }
+
+  function drawIllustrationPlaceholder(context, x, y, size, palette) {
+    context.fillStyle = palette.paper;
+    roundedRectPath(context, x, y, size, size, 30);
+    context.fill();
+    context.strokeStyle = palette.ink;
+    context.lineWidth = 8;
+    roundedRectPath(context, x + 75, y + 105, size - 150, size - 170, 14);
+    context.stroke();
+    context.fillStyle = palette.accent;
+    context.fillRect(x + 75, y + 145, size - 150, 18);
+    context.beginPath();
+    context.arc(x + size / 2, y + 105, 34, Math.PI, 0);
+    context.stroke();
+  }
+
+  function drawQrGiftCard(qrCanvas, palette, project, illustration) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1350;
+    canvas.className = "qr-gift-card-canvas";
+    const context = canvas.getContext("2d");
+    const theme = Project.getTheme(project.themeId);
+    const recipient = project.identity?.recipient || "Kamu";
+    const sender = project.identity?.sender || "Seseorang spesial";
+    const cocoa = theme.palette?.ink || "#332b27";
+
+    context.fillStyle = palette.paper;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.globalAlpha = .13;
+    context.strokeStyle = palette.accent;
+    context.lineWidth = 2;
+    for (let y = 34; y < 1350; y += 42) {
+      for (let x = 30; x < 1080; x += 42) {
+        context.beginPath();
+        context.arc(x + ((y / 42) % 2) * 10, y, 4, 0, Math.PI * 2);
+        context.stroke();
+      }
+    }
+    context.globalAlpha = 1;
+
+    context.fillStyle = palette.accent;
+    roundedRectPath(context, 54, 64, 972, 1220, 46);
+    context.fill();
+    context.fillStyle = "#fffdf8";
+    roundedRectPath(context, 38, 48, 972, 1220, 46);
+    context.fill();
+    context.strokeStyle = cocoa;
+    context.lineWidth = 7;
+    context.stroke();
+
+    context.save();
+    context.translate(540, 65);
+    context.rotate(-.035);
+    context.fillStyle = `${palette.accent}cc`;
+    context.fillRect(-108, -26, 216, 60);
+    context.restore();
+
+    context.fillStyle = palette.ink;
+    roundedRectPath(context, 328, 108, 424, 58, 29);
+    context.fill();
+    context.fillStyle = "#ffffff";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.font = '700 22px "Fredoka", sans-serif';
+    context.letterSpacing = "2px";
+    context.fillText("A LITTLE BIRTHDAY SURPRISE", 540, 138);
+
+    context.fillStyle = "#ffffff";
+    context.strokeStyle = cocoa;
+    context.lineWidth = 6;
+    roundedRectPath(context, 92, 210, 280, 280, 34);
+    context.fill();
+    context.stroke();
+    if (illustration) drawCoverImage(context, illustration, 104, 222, 256, 256);
+    else drawIllustrationPlaceholder(context, 104, 222, 256, palette);
+
+    context.textAlign = "left";
+    context.fillStyle = cocoa;
+    context.font = '700 31px "Fredoka", sans-serif';
+    context.fillText("BIRTHDAY GIFT FOR", 418, 270);
+    context.fillStyle = palette.ink;
+    context.font = '700 64px "Fredoka", sans-serif';
+    context.fillText(fitCanvasText(context, recipient, 535), 418, 340);
+    context.fillStyle = cocoa;
+    context.font = '600 31px "Caveat", cursive';
+    context.fillText("Scan untuk membuka kejutan kecil", 418, 405);
+    context.fillText("yang dibuat khusus untukmu.", 418, 447);
+
+    context.fillStyle = "#ffffff";
+    context.strokeStyle = cocoa;
+    context.lineWidth = 6;
+    roundedRectPath(context, 186, 535, 708, 638, 36);
+    context.fill();
+    context.stroke();
+    const qrSize = 568;
+    context.imageSmoothingEnabled = false;
+    context.drawImage(qrCanvas, 256, 570, qrSize, qrSize);
+    context.imageSmoothingEnabled = true;
+
+    const confetti = [
+      [102, 570, 16, 42, -.3], [920, 520, 18, 48, .28], [112, 1110, 18, 44, .2],
+      [932, 1060, 18, 46, -.22], [126, 690, 12, 30, .4], [914, 745, 14, 34, -.35]
+    ];
+    confetti.forEach(([x, y, width, height, angle], index) => {
+      context.save();
+      context.translate(x, y);
+      context.rotate(angle);
+      context.fillStyle = index % 2 ? palette.accent : palette.ink;
+      context.fillRect(-width / 2, -height / 2, width, height);
+      context.restore();
+    });
+
+    context.textAlign = "center";
+    context.fillStyle = cocoa;
+    context.font = '600 31px "Caveat", cursive';
+    context.fillText(fitCanvasText(context, `Dibuat khusus oleh ${sender}`, 780), 540, 1224);
+    context.strokeStyle = palette.ink;
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(210, 1223);
+    context.lineTo(330, 1223);
+    context.moveTo(750, 1223);
+    context.lineTo(870, 1223);
+    context.stroke();
+    return canvas;
+  }
+
+  async function buildQrGiftCard(url, version) {
     const target = $("#qr-code");
-    target.replaceChildren();
     qrInstance = null;
     if (!window.QRCode) {
-      target.textContent = "QR generator belum termuat. Refresh halaman untuk mencoba lagi.";
-      return;
+      throw new Error("QR generator belum termuat. Refresh halaman untuk mencoba lagi.");
     }
     const probe = document.createElement("div");
     probe.hidden = true;
-    target.appendChild(probe);
     qrInstance = new window.QRCode(probe, {
       text: url,
       width: 360,
@@ -1190,12 +1329,31 @@
       correctLevel: window.QRCode.CorrectLevel.H
     });
     const model = qrInstance._oQRCode;
-    if (model?.getModuleCount && model?.isDark) {
-      const canvas = drawHeartQr(model, QR_PALETTES[qrPaletteKey]);
-      target.replaceChildren(canvas);
-    } else {
-      probe.hidden = false;
-    }
+    if (!model?.getModuleCount || !model?.isDark) throw new Error("Data QR belum dapat dirender.");
+    if (document.fonts?.ready) await document.fonts.ready;
+    const palette = QR_PALETTES[qrPaletteKey];
+    const [illustration] = await Promise.all([loadQrIllustration(draft.themeId)]);
+    const qrCanvas = drawStandardQr(model, palette);
+    const canvas = drawQrGiftCard(qrCanvas, palette, draft, illustration);
+    if (version === qrRenderVersion) target.replaceChildren(canvas);
+    return canvas;
+  }
+
+  function renderQr(url) {
+    const target = $("#qr-code");
+    const version = ++qrRenderVersion;
+    const message = document.createElement("p");
+    message.className = "qr-render-message";
+    message.textContent = "Menyiapkan preview kartu QR...";
+    target.replaceChildren(message);
+    qrRenderPromise = buildQrGiftCard(url, version).catch(error => {
+      if (version === qrRenderVersion) {
+        message.textContent = error.message || "Kartu QR belum dapat dibuat. Coba refresh halaman.";
+        target.replaceChildren(message);
+      }
+      return null;
+    });
+    return qrRenderPromise;
   }
 
   function updatePublishedResult(explicitUrl) {
@@ -1223,7 +1381,7 @@
     $("#download-qr").disabled = pending;
     $("#open-public-gift").classList.toggle("is-disabled", pending);
     $("#open-public-gift").setAttribute("aria-disabled", String(pending));
-    renderQr(url);
+    if (!pending) renderQr(url);
   }
 
   function updateBackendThemeWarning() {
@@ -1272,18 +1430,11 @@
 
   async function downloadQr() {
     const status = $("#download-status");
-    status.textContent = "Menyiapkan QR...";
-    const qrCanvas = $("#qr-code canvas");
-    const qrImage = $("#qr-code img");
-    let canvas = qrCanvas;
-    if (!canvas && qrImage) {
-      canvas = document.createElement("canvas");
-      canvas.width = qrImage.naturalWidth || 360;
-      canvas.height = qrImage.naturalHeight || 360;
-      canvas.getContext("2d").drawImage(qrImage, 0, 0, canvas.width, canvas.height);
-    }
+    status.textContent = "Menyiapkan kartu QR...";
+    let canvas = await qrRenderPromise;
+    if (!canvas) canvas = $("#qr-code canvas");
     if (!canvas) {
-      status.textContent = "QR belum siap. Coba lagi sebentar.";
+      status.textContent = "Kartu QR belum siap. Coba lagi sebentar.";
       return;
     }
 
@@ -1295,13 +1446,13 @@
 
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.download = `qr-${projectId}.png`;
+    link.download = `birthday-card-${projectId}.png`;
     link.href = downloadUrl;
     link.rel = "noopener";
     document.body.append(link);
     link.click();
     link.remove();
-    status.textContent = `QR ${projectId} berhasil disiapkan.`;
+    status.textContent = `Kartu QR ${projectId} berhasil disiapkan.`;
     window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
   }
 
