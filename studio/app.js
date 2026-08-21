@@ -1155,10 +1155,7 @@
     return `${shortened.trim()}…`;
   }
 
-  function loadQrIllustration(themeId) {
-    const source = themeId === "dubu-duu"
-      ? "/assets/themes/dubu-duu/welcome.webp"
-      : "/assets/photos/snoopy-birthday-qr.jpg";
+  function loadQrImage(source) {
     if (qrIllustrationCache.has(source)) return qrIllustrationCache.get(source);
     const promise = new Promise(resolve => {
       const image = new Image();
@@ -1174,6 +1171,19 @@
     return promise;
   }
 
+  function loadQrIllustration(themeId) {
+    return loadQrImage(themeId === "dubu-duu"
+      ? "/assets/photos/dubu-1.jpg"
+      : "/assets/photos/snoopy-birthday-qr.jpg");
+  }
+
+  function loadQrDecorations(themeId) {
+    const sources = themeId === "dubu-duu"
+      ? ["/assets/photos/dubu-2.png", "/assets/photos/dubu-3.png"]
+      : ["/assets/photos/snoopy-barcode-1.png", "/assets/photos/snoopy-barcode-2.png"];
+    return Promise.all(sources.map(loadQrImage));
+  }
+
   function drawCoverImage(context, image, x, y, width, height) {
     const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
     const drawWidth = image.naturalWidth * scale;
@@ -1182,6 +1192,22 @@
     roundedRectPath(context, x, y, width, height, 30);
     context.clip();
     context.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
+    context.restore();
+  }
+
+  function drawStickerImage(context, image, x, y, width, height, rotation = 0, crop = null) {
+    if (!image) return;
+    const source = crop || { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight };
+    const scale = Math.min(width / source.width, height / source.height);
+    const drawWidth = source.width * scale;
+    const drawHeight = source.height * scale;
+    context.save();
+    context.translate(x + width / 2, y + height / 2);
+    context.rotate(rotation);
+    context.shadowColor = "rgba(51, 43, 39, .18)";
+    context.shadowBlur = 12;
+    context.shadowOffsetY = 8;
+    context.drawImage(image, source.x, source.y, source.width, source.height, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
     context.restore();
   }
 
@@ -1200,7 +1226,7 @@
     context.stroke();
   }
 
-  function drawQrGiftCard(qrCanvas, palette, project, illustration) {
+  function drawQrGiftCard(qrCanvas, palette, project, illustration, decorations = []) {
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1350;
@@ -1276,12 +1302,12 @@
     context.fillStyle = "#ffffff";
     context.strokeStyle = cocoa;
     context.lineWidth = 6;
-    roundedRectPath(context, 186, 535, 708, 638, 36);
+    roundedRectPath(context, 240, 548, 600, 600, 36);
     context.fill();
     context.stroke();
-    const qrSize = 568;
+    const qrSize = 540;
     context.imageSmoothingEnabled = false;
-    context.drawImage(qrCanvas, 256, 570, qrSize, qrSize);
+    context.drawImage(qrCanvas, 270, 578, qrSize, qrSize);
     context.imageSmoothingEnabled = true;
 
     const confetti = [
@@ -1297,10 +1323,18 @@
       context.restore();
     });
 
+    if (project.themeId === "snoopy") {
+      drawStickerImage(context, decorations[0], 4, 872, 224, 300, -.055);
+      drawStickerImage(context, decorations[1], 804, 372, 245, 280, .055, { x: 90, y: 45, width: 360, height: 390 });
+    } else if (project.themeId === "dubu-duu") {
+      drawStickerImage(context, decorations[0], 840, 392, 205, 235, .045, { x: 205, y: 130, width: 290, height: 355 });
+      drawStickerImage(context, decorations[1], 10, 920, 220, 145, -.04, { x: 12, y: 270, width: 445, height: 230 });
+    }
+
     context.textAlign = "center";
     context.fillStyle = cocoa;
     context.font = '600 31px "Caveat", cursive';
-    context.fillText(fitCanvasText(context, `Dibuat khusus oleh ${sender}`, 780), 540, 1224);
+    context.fillText(fitCanvasText(context, `Made especially for you by ${sender}`, 780), 540, 1224);
     context.strokeStyle = palette.ink;
     context.lineWidth = 3;
     context.beginPath();
@@ -1332,9 +1366,12 @@
     if (!model?.getModuleCount || !model?.isDark) throw new Error("Data QR belum dapat dirender.");
     if (document.fonts?.ready) await document.fonts.ready;
     const palette = QR_PALETTES[qrPaletteKey];
-    const [illustration] = await Promise.all([loadQrIllustration(draft.themeId)]);
+    const [illustration, decorations] = await Promise.all([
+      loadQrIllustration(draft.themeId),
+      loadQrDecorations(draft.themeId)
+    ]);
     const qrCanvas = drawStandardQr(model, palette);
-    const canvas = drawQrGiftCard(qrCanvas, palette, draft, illustration);
+    const canvas = drawQrGiftCard(qrCanvas, palette, draft, illustration, decorations);
     if (version === qrRenderVersion) target.replaceChildren(canvas);
     return canvas;
   }
@@ -1438,7 +1475,8 @@
       return;
     }
 
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    const sourceBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    const blob = sourceBlob ? await addPngDpiMetadata(sourceBlob, 300) : null;
     if (!blob) {
       status.textContent = "QR belum dapat diunduh. Coba lagi.";
       return;
@@ -1454,6 +1492,34 @@
     link.remove();
     status.textContent = `Kartu QR ${projectId} berhasil disiapkan.`;
     window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
+  }
+
+  function crc32(bytes) {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  async function addPngDpiMetadata(blob, dpi) {
+    const source = new Uint8Array(await blob.arrayBuffer());
+    const pixelsPerMeter = Math.round(dpi / .0254);
+    const chunk = new Uint8Array(21);
+    const view = new DataView(chunk.buffer);
+    view.setUint32(0, 9);
+    chunk.set([112, 72, 89, 115], 4);
+    view.setUint32(8, pixelsPerMeter);
+    view.setUint32(12, pixelsPerMeter);
+    chunk[16] = 1;
+    view.setUint32(17, crc32(chunk.subarray(4, 17)));
+    const ihdrEnd = 33;
+    const output = new Uint8Array(source.length + chunk.length);
+    output.set(source.subarray(0, ihdrEnd), 0);
+    output.set(chunk, ihdrEnd);
+    output.set(source.subarray(ihdrEnd), ihdrEnd + chunk.length);
+    return new Blob([output], { type: "image/png" });
   }
 
   function bindEvents() {

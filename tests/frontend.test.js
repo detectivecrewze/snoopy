@@ -104,6 +104,13 @@ test("music catalog supports covers, selection, and audio preview", () => {
   assert.match(studioApp, /canvas\.width = 1080/);
   assert.match(studioApp, /canvas\.height = 1350/);
   assert.match(studioApp, /birthday-card-\$\{projectId\}\.png/);
+  assert.match(studioApp, /snoopy-barcode-1\.png/);
+  assert.match(studioApp, /snoopy-barcode-2\.png/);
+  assert.match(studioApp, /dubu-1\.jpg/);
+  assert.match(studioApp, /dubu-2\.png/);
+  assert.match(studioApp, /dubu-3\.png/);
+  assert.doesNotMatch(studioApp, /assets\/themes\/dubu-duu\/welcome\.webp/);
+  assert.match(studioApp, /addPngDpiMetadata\(sourceBlob, 300\)/);
   assert.match(studio, /\/assets\/vendor\/qrcodejs\/qrcode\.min\.js/);
   assert.doesNotMatch(studio, /cdnjs\.cloudflare\.com\/ajax\/libs\/qrcodejs/);
   assert.match(studioApp, /20 \* 1024 \* 1024/);
